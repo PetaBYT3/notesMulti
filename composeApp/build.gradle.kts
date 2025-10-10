@@ -8,6 +8,7 @@ plugins {
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.composeHotReload)
     alias(libs.plugins.ksp)
+    alias(libs.plugins.room)
 }
 
 kotlin {
@@ -17,7 +18,7 @@ kotlin {
         }
     }
     
-    jvm("desktop")
+    jvm()
     
     sourceSets {
         androidMain.dependencies {
@@ -48,6 +49,10 @@ kotlin {
 
             //Room Database
             api(libs.room.runtime)
+            api(libs.sqlite.bundled)
+
+            //Material Icon
+            api(compose.materialIconsExtended)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
@@ -56,8 +61,6 @@ kotlin {
             implementation(compose.desktop.currentOs)
             implementation(libs.kotlinx.coroutinesSwing)
 
-            //SQLite Driver
-            api(libs.sqlite.driver)
         }
     }
 }
@@ -87,6 +90,10 @@ android {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
+}
+
+room {
+    schemaDirectory("${projectDir}/schemas")
 }
 
 dependencies {

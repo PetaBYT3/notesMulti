@@ -1,33 +1,47 @@
 package org.notes.multi.viewmodel
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import org.notes.multi.action.HomeAction
-import org.notes.multi.repository.TestRepository
+import org.notes.multi.localdata.database.NotesEntity
+import org.notes.multi.repository.NotesRepository
 import org.notes.multi.state.HomeState
 
 class HomeViewModel(
-    private val testRepository: TestRepository
+    private val notesRepository: NotesRepository
 ): ViewModel() {
 
     private val _state = MutableStateFlow(HomeState())
     val state = _state.asStateFlow()
 
     init {
-        injectTest()
+        getAllNotes()
     }
 
     fun onAction(action: HomeAction) {
         when (action) {
-            is HomeAction.Test -> {
-                _state.update { it.copy(test = action.test) }
+            is HomeAction.InsertNotes -> {
+                insertNotes(note = action.newNotes)
             }
         }
     }
 
-    private fun injectTest() {
-        _state.update { it.copy(injectTest = testRepository.test) }
+    private fun getAllNotes() {
+        viewModelScope.launch {
+            notesRepository.getAllNotes().collect { allNotes ->
+                _state.update { it.copy(allNotes = allNotes) }
+
+            }
+        }
+    }
+
+    private fun insertNotes(note: NotesEntity) {
+        viewModelScope.launch {
+            notesRepository.insertNote(note)
+        }
     }
 }

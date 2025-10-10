@@ -10,8 +10,15 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeContentPadding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -26,12 +33,10 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
-
-import notesmulti.composeapp.generated.resources.Res
-import notesmulti.composeapp.generated.resources.compose_multiplatform
 import org.koin.compose.KoinApplication
 import org.koin.compose.viewmodel.koinViewModel
 import org.notes.multi.action.HomeAction
+import org.notes.multi.localdata.database.NotesEntity
 import org.notes.multi.module.AppModule
 import org.notes.multi.state.HomeState
 import org.notes.multi.viewmodel.HomeViewModel
@@ -70,6 +75,17 @@ private fun ScaffoldScreen(
                 }
             )
         },
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = {
+                }
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.Add,
+                    contentDescription = null
+                )
+            }
+        }
 
     ) { innerPadding ->
         ContentScreen(
@@ -90,25 +106,36 @@ private fun ContentScreen(
     Column(
         modifier = modifier.padding(start = 10.dp, end = 10.dp)
     ) {
-        var textField by rememberSaveable { mutableStateOf("") }
-        TextField(
-            value = state.test,
-            onValueChange = {
-                textField = it
-                onAction(HomeAction.Test(it))
-            },
-            label = { Text("Email") },
-            modifier = Modifier.fillMaxWidth()
-        )
         Button(
             onClick = {
-                onAction(HomeAction.Test(textField))
+                val notes = NotesEntity(
+                    title = "Judul",
+                    text = "Isi Note"
+                )
+                onAction(HomeAction.InsertNotes(notes))
             }
         ) {
-            Text(text = "Click")
+            Text(text = "Add Notes")
         }
-        Text(text = state.test)
-        Spacer(Modifier.height(20.dp))
-        Text(text = state.injectTest)
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxWidth()
+        ) {
+            items(state.allNotes) { note ->
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .padding(10.dp)
+                    ) {
+                        Text(text = note.title)
+                        Text(text = note.text)
+                    }
+                }
+                Spacer(Modifier.height(10.dp))
+            }
+        }
     }
 }

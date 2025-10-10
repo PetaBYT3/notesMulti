@@ -1,6 +1,7 @@
 package org.notes.multi.state
 
+import org.notes.multi.localdata.database.NotesEntity
+
 data class HomeState(
-    val test: String = "",
-    val injectTest: String = ""
+    val allNotes: List<NotesEntity> = emptyList()
 )

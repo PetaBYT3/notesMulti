@@ -17,9 +17,9 @@ kotlinx-coroutines = "1.10.2"
 
 koin = "4.1.1"
 voyager = "1.1.0-beta03"
-room = "2.8.2"
-sqlite = "2.4.0"
 ksp = "2.2.20-2.0.3"
+room = "2.8.2"
+sqlite = "2.6.1"
 
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
@@ -44,12 +44,12 @@ koin-compose-viewmodel = { module = "io.insert-koin:koin-compose-viewmodel", ver
 voyager-navigator = { module = "cafe.adriel.voyager:voyager-navigator", version.ref = "voyager" }
 voyager-koin = { module = "cafe.adriel.voyager:voyager-koin", version.ref = "voyager" }
 
+
 #Room Database
 room-runtime = { module = "androidx.room:room-runtime", version.ref = "room" }
+room-runtime-android = { module = "androidx.room:room-runtime-android", version.ref = "room" }
 room-compiler = { module = "androidx.room:room-compiler", version.ref = "room" }
-
-#SQLite Driver
-sqlite-driver = { module = "androidx.sqlite:sqlite-driver", version.ref = "sqlite" }
+sqlite-bundled = { module = "androidx.sqlite:sqlite-bundled", version.ref = "sqlite" }
 
 
 [plugins]
@@ -60,3 +60,6 @@ composeMultiplatform = { id = "org.jetbrains.compose", version.ref = "composeMul
 composeCompiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
+
+#Room Database
+room = { id = "androidx.room", version.ref = "room" }
