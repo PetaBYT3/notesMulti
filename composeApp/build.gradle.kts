@@ -9,6 +9,7 @@ plugins {
     alias(libs.plugins.composeHotReload)
     alias(libs.plugins.ksp)
     alias(libs.plugins.room)
+    alias(libs.plugins.kotlinxSerialization)
 }
 
 kotlin {
@@ -53,6 +54,15 @@ kotlin {
 
             //Material Icon
             api(compose.materialIconsExtended)
+
+            //Navigation
+            api(libs.voyager.navigator)
+            api(libs.voyager.koin)
+            api(libs.voyager.transitions)
+
+
+            //Kotlinx Serialization
+            api(libs.kotlinx.serialization.json)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
@@ -111,4 +121,18 @@ compose.desktop {
             packageVersion = "1.0.0"
         }
     }
+}
+
+tasks.matching {
+    it.name.startsWith("ksp") && it.name.endsWith("KotlinAndroid")
+}.configureEach {
+    val task = this
+    task.dependsOn(
+        "generateResourceAccessorsForAndroidDebug",
+        "generateResourceAccessorsForAndroidMain",
+        "generateActualResourceCollectorsForAndroidMain",
+        "generateComposeResClass",
+        "generateResourceAccessorsForCommonMain",
+        "generateExpectResourceCollectorsForCommonMain"
+    )
 }

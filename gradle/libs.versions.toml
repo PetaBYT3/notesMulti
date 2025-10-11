@@ -20,6 +20,10 @@ voyager = "1.1.0-beta03"
 ksp = "2.2.20-2.0.3"
 room = "2.8.2"
 sqlite = "2.6.1"
+androidx-navigation = "2.9.5"
+kotlin-serialization = "1.9.0"
+
+
 
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
@@ -43,7 +47,7 @@ koin-compose-viewmodel = { module = "io.insert-koin:koin-compose-viewmodel", ver
 #Navigation
 voyager-navigator = { module = "cafe.adriel.voyager:voyager-navigator", version.ref = "voyager" }
 voyager-koin = { module = "cafe.adriel.voyager:voyager-koin", version.ref = "voyager" }
-
+voyager-transitions = { module = "cafe.adriel.voyager:voyager-transitions", version.ref = "voyager" }
 
 #Room Database
 room-runtime = { module = "androidx.room:room-runtime", version.ref = "room" }
@@ -51,6 +55,9 @@ room-runtime-android = { module = "androidx.room:room-runtime-android", version.
 room-compiler = { module = "androidx.room:room-compiler", version.ref = "room" }
 sqlite-bundled = { module = "androidx.sqlite:sqlite-bundled", version.ref = "sqlite" }
 
+#Navigation
+androidx-compose-navigation = { module = "androidx.navigation:navigation-compose", version.ref = "androidx-navigation" }
+kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlin-serialization" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }
@@ -63,3 +70,6 @@ ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 
 #Room Database
 room = { id = "androidx.room", version.ref = "room" }
+
+#Navigation
+kotlinxSerialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
