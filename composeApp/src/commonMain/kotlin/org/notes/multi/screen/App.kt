@@ -12,7 +12,7 @@ import org.notes.multi.route.Route
 fun App() {
     MaterialTheme {
         KoinApplication(
-            {
+            application = {
                 modules(AppModule.getAll())
             }
         ) {

@@ -89,18 +89,10 @@ private fun ScaffoldScreen(
                 navigationIcon = {
                     IconButton(
                         onClick = {
-                            if (note != null) {
-                                if (state.title != state.titleDraft || state.text != state.textDraft) {
-                                    onAction(NoteAction.ShowDiscardBottomSheet(true))
-                                } else {
-                                    navigator.pop()
-                                }
+                            if (state.title != state.titleDraft || state.text != state.textDraft) {
+                                onAction(NoteAction.ShowDiscardBottomSheet(true))
                             } else {
-                                if (state.titleDraft.isNotBlank() || state.textDraft.isNotBlank()) {
-                                    onAction(NoteAction.ShowDiscardBottomSheet(true))
-                                } else {
-                                    navigator.pop()
-                                }
+                                navigator.pop()
                             }
                         }
                     ) {
@@ -119,11 +111,17 @@ private fun ScaffoldScreen(
                     if (state.titleDraft.isNotBlank()) {
                         onAction(NoteAction.InsertNote)
                         scope.launch {
-                            snackBarHostState.showSnackbar("Note Saved !")
+                            snackBarHostState.showSnackbar(
+                                message = "Note Saved !",
+                                withDismissAction = true
+                            )
                         }
                     } else {
                         scope.launch {
-                            snackBarHostState.showSnackbar("Title cannot be empty !")
+                            snackBarHostState.showSnackbar(
+                                message = "Title cannot be empty !",
+                                withDismissAction = true
+                            )
                         }
                     }
                 },

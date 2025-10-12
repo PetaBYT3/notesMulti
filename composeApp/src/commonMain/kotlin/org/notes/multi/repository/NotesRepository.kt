@@ -3,6 +3,7 @@ package org.notes.multi.repository
 import kotlinx.coroutines.flow.Flow
 import org.notes.multi.localdata.database.NotesDao
 import org.notes.multi.localdata.database.NotesEntity
+import org.notes.multi.saveImage
 
 class NotesRepository(
     private val noteDao: NotesDao
@@ -22,5 +23,9 @@ class NotesRepository(
 
     suspend fun deleteNote(note: NotesEntity) {
         noteDao.deleteNote(note)
+    }
+
+    suspend fun imageStorage(byteArray: ByteArray) : String? {
+        return saveImage(byteArray = byteArray)
     }
 }

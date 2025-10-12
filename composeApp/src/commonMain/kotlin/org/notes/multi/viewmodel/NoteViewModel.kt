@@ -12,7 +12,7 @@ import org.notes.multi.repository.NotesRepository
 import org.notes.multi.state.NoteState
 
 class NoteViewModel(
-    private val notesRepository: NotesRepository
+    private val notesRepository: NotesRepository,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(NoteState())
@@ -94,6 +94,11 @@ class NoteViewModel(
         val uIdDraft = _state.value.uIdDraft
         val titleDraft = _state.value.titleDraft
         val textDraft = _state.value.textDraft
+        _state.update { it.copy(
+            uId = uIdDraft,
+            title = titleDraft,
+            text = textDraft
+        ) }
         val noteDraft = NotesEntity(
             uId = uIdDraft,
             title = titleDraft,

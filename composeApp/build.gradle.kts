@@ -60,9 +60,15 @@ kotlin {
             api(libs.voyager.koin)
             api(libs.voyager.transitions)
 
-
             //Kotlinx Serialization
             api(libs.kotlinx.serialization.json)
+
+            //Coil
+            api(libs.coil.compose)
+            api(libs.coil.network.okhttp)
+
+            //File Picker
+            api(libs.filekit.compose)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

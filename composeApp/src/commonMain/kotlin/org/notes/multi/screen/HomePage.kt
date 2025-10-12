@@ -1,16 +1,23 @@
 package org.notes.multi.screen
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
@@ -28,13 +35,16 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.Navigator
 import cafe.adriel.voyager.navigator.currentOrThrow
+import coil3.compose.AsyncImage
+import io.github.vinceglb.filekit.compose.rememberFilePickerLauncher
+import io.github.vinceglb.filekit.core.PickerType
 import kotlinx.coroutines.launch
 import org.koin.compose.viewmodel.koinViewModel
 import org.notes.multi.action.HomeAction
@@ -67,12 +77,30 @@ private fun ScaffoldScreen(
 ) {
     val snackBarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
+    val filePickerLauncher = rememberFilePickerLauncher(
+        type = PickerType.Image,
+        onResult = { file ->
+            scope.launch {
+                if (file != null) {
+                    val imageBytes = file.readBytes()
+                }
+            }
+        }
+    )
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text(text = "Home") },
                 actions = {
+                    IconButton(
+                        onClick = { filePickerLauncher.launch() }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.Add,
+                            contentDescription = null
+                        )
+                    }
                 }
             )
         },
@@ -134,7 +162,10 @@ private fun ScaffoldScreen(
             onConfirm = {
                 onAction(HomeAction.DeleteNote)
                 scope.launch {
-                    snackBarHostState.showSnackbar(message = "Note Deleted !")
+                    snackBarHostState.showSnackbar(
+                        message = "Note Deleted !",
+                        withDismissAction = true
+                    )
                 }
             },
             onDismiss = {
@@ -176,11 +207,13 @@ private fun ContentScreen(
                                 .padding(10.dp)
                                 .height(150.dp)
                         ) {
-                            Text(
-                                text = note.title,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
+                            Box {
+                                Text(
+                                    text = note.title,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
                             HorizontalDivider(Modifier.padding(vertical = 10.dp))
                             Text(
                                 text = note.text,
@@ -204,6 +237,27 @@ private fun ContentScreen(
                         }
                     }
                     Spacer(Modifier.height(10.dp))
+                }
+            }
+        )
+
+        AnimatedVisibility(
+            modifier = Modifier
+                .fillMaxSize(),
+            visible = state.allNotes.isEmpty(),
+            content = {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.Warning,
+                        contentDescription = "Empty Note",
+                    )
+                    Spacer(Modifier.width(10.dp))
+                    Text(text = "No notes found")
                 }
             }
         )
