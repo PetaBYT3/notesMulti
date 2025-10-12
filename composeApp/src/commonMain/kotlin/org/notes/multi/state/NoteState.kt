@@ -5,11 +5,14 @@ import org.notes.multi.localdata.database.NotesEntity
 data class NoteState(
 
     //Note Data
-    val note : NotesEntity? = null,
+    val uId: Int = 0,
+    val title : String = "",
+    val text : String = "",
 
     //Note Draft
-    val titleDraft : String? = null,
-    val textDraft: String? = null,
+    val uIdDraft: Int = 0,
+    val titleDraft : String = "",
+    val textDraft: String = "",
 
     //Discard BottomSheet
     val showDiscardBottomSheet : Boolean = false,

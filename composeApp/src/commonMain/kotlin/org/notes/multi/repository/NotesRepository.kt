@@ -12,7 +12,15 @@ class NotesRepository(
         return noteDao.getAllNotes()
     }
 
+    fun getNoteByUid(uId: Int): Flow<NotesEntity> {
+        return noteDao.getNoteByUid(uId = uId)
+    }
+
     suspend fun insertNote(note: NotesEntity) {
         noteDao.insertNote(note)
+    }
+
+    suspend fun deleteNote(note: NotesEntity) {
+        noteDao.deleteNote(note)
     }
 }

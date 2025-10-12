@@ -1,42 +1,46 @@
 package org.notes.multi.screen
 
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
-import androidx.compose.material3.Button
+import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
-import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.Navigator
 import cafe.adriel.voyager.navigator.currentOrThrow
-import kotlinx.serialization.Serializable
+import kotlinx.coroutines.launch
 import org.koin.compose.viewmodel.koinViewModel
 import org.notes.multi.action.HomeAction
-import org.notes.multi.localdata.database.NotesEntity
 import org.notes.multi.route.Route
 import org.notes.multi.state.HomeState
+import org.notes.multi.utilities.ComposableUnitBottomSheet
 import org.notes.multi.viewmodel.HomeViewModel
 
 @Composable
@@ -45,11 +49,12 @@ fun HomeScreen(
     navigator: Navigator = LocalNavigator.currentOrThrow
 ) {
     val state by viewModel.state.collectAsState()
+    val onAction = viewModel::onAction
 
     ScaffoldScreen(
         navigator = navigator,
         state = state,
-        onAction = viewModel::onAction
+        onAction = onAction
     )
 }
 
@@ -60,6 +65,9 @@ private fun ScaffoldScreen(
     state: HomeState,
     onAction: (HomeAction) -> Unit
 ) {
+    val snackBarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -71,9 +79,7 @@ private fun ScaffoldScreen(
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 onClick = {
-                    navigator.push(Route.NoteRoute(
-                        noteUid = null
-                    ))
+                    navigator.push(Route.NoteRoute(note = null))
                 },
                 text = { Text(text = "Create New Note") },
                 icon = {
@@ -83,7 +89,8 @@ private fun ScaffoldScreen(
                     )
                 }
             )
-        }
+        },
+        snackbarHost = { SnackbarHost(snackBarHostState) }
 
     ) { innerPadding ->
         ContentScreen(
@@ -94,6 +101,50 @@ private fun ScaffoldScreen(
         )
     }
 
+    if (state.showDeleteBottomSheet) {
+        ComposableUnitBottomSheet(
+            title = "Delete Note",
+            content = {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .padding(10.dp)
+                            .height(150.dp)
+                    ) {
+                        Text(
+                            text = state.noteToDelete?.title?: "",
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        HorizontalDivider(Modifier.padding(vertical = 10.dp))
+                        Text(
+                            text = state.noteToDelete?.text?: "",
+                            overflow = TextOverflow.Ellipsis,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+
+                    }
+                }
+            },
+            confirmButtonText = "Delete",
+            dismissButtonText = "Cancel",
+            onConfirm = {
+                onAction(HomeAction.DeleteNote)
+                scope.launch {
+                    snackBarHostState.showSnackbar(message = "Note Deleted !")
+                }
+            },
+            onDismiss = {
+                onAction(HomeAction.ShowDeleteBottomSheet(
+                    showDeleteBottomSheet = false,
+                    noteToDelete = null
+                ))
+            }
+        )
+    }
 }
 
 @Composable
@@ -115,14 +166,41 @@ private fun ContentScreen(
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(5.dp)
+                            .padding(5.dp),
+                        onClick = {
+                            navigator.push(Route.NoteRoute(note = note))
+                        }
                     ) {
                         Column(
                             modifier = Modifier
                                 .padding(10.dp)
+                                .height(150.dp)
                         ) {
-                            Text(text = note.title)
-                            Text(text = note.text)
+                            Text(
+                                text = note.title,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            HorizontalDivider(Modifier.padding(vertical = 10.dp))
+                            Text(
+                                text = note.text,
+                                overflow = TextOverflow.Ellipsis,
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+
+                        }
+                        IconButton(
+                            onClick = {
+                                onAction(HomeAction.ShowDeleteBottomSheet(
+                                    showDeleteBottomSheet = true,
+                                    noteToDelete = note
+                                ))
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.Delete,
+                                contentDescription = "Delete Note"
+                            )
                         }
                     }
                     Spacer(Modifier.height(10.dp))

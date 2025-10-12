@@ -27,6 +27,18 @@ class HomeViewModel(
             is HomeAction.InsertNotes -> {
                 insertNotes(note = action.newNotes)
             }
+            is HomeAction.ShowDeleteBottomSheet -> {
+                showDeleteBottomSheet(
+                    showDeleteBottomSheet = action.showDeleteBottomSheet,
+                    noteToDelete = action.noteToDelete
+                )
+            }
+            HomeAction.DeleteNote -> {
+                val noteToDelete = state.value.noteToDelete
+                if (noteToDelete != null) {
+                    deleteNote(noteToDelete = noteToDelete)
+                }
+            }
         }
     }
 
@@ -42,6 +54,24 @@ class HomeViewModel(
     private fun insertNotes(note: NotesEntity) {
         viewModelScope.launch {
             notesRepository.insertNote(note)
+        }
+    }
+
+    private fun showDeleteBottomSheet(
+        showDeleteBottomSheet: Boolean,
+        noteToDelete: NotesEntity?
+    ) {
+        _state.update {
+            it.copy(
+                showDeleteBottomSheet = showDeleteBottomSheet,
+                noteToDelete = noteToDelete
+            )
+        }
+    }
+
+    private fun deleteNote(noteToDelete: NotesEntity) {
+        viewModelScope.launch {
+            notesRepository.deleteNote(noteToDelete)
         }
     }
 }

@@ -8,77 +8,99 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.Save
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.Navigator
 import cafe.adriel.voyager.navigator.currentOrThrow
+import kotlinx.coroutines.launch
 import org.koin.compose.viewmodel.koinViewModel
 import org.notes.multi.action.NoteAction
+import org.notes.multi.localdata.database.NotesEntity
+import org.notes.multi.utilities.SimpleConfirmationBottomSheet
 import org.notes.multi.state.NoteState
 import org.notes.multi.viewmodel.NoteViewModel
 
 @Composable
 fun NoteScreen(
-    noteUid: Int?,
+    note: NotesEntity?,
     viewModel: NoteViewModel = koinViewModel(),
     navigator: Navigator = LocalNavigator.currentOrThrow,
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val onAction = viewModel::onAction
 
     ScaffoldScreen(
+        note = note,
         navigator = navigator,
         state = state,
-        onAction = viewModel::onAction,
+        onAction = onAction,
     )
 
+    LaunchedEffect(note) {
+        if (note != null) {
+            onAction(NoteAction.SelectedNotes(note))
+        } else {
+            onAction(NoteAction.ClearNote)
+        }
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ScaffoldScreen(
+    note: NotesEntity?,
     navigator: Navigator,
     state: NoteState,
     onAction: (NoteAction) -> Unit,
 ) {
+    val snackBarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+
     Scaffold(
         topBar = {
             TopAppBar(
                 navigationIcon = {
                     IconButton(
                         onClick = {
-                            navigator.pop().apply {
-                                onAction(NoteAction.IsPageClosed)
+                            if (note != null) {
+                                if (state.title != state.titleDraft || state.text != state.textDraft) {
+                                    onAction(NoteAction.ShowDiscardBottomSheet(true))
+                                } else {
+                                    navigator.pop()
+                                }
+                            } else {
+                                if (state.titleDraft.isNotBlank() || state.textDraft.isNotBlank()) {
+                                    onAction(NoteAction.ShowDiscardBottomSheet(true))
+                                } else {
+                                    navigator.pop()
+                                }
                             }
                         }
                     ) {
@@ -93,7 +115,18 @@ private fun ScaffoldScreen(
         },
         floatingActionButton = {
             ExtendedFloatingActionButton(
-                onClick = {},
+                onClick = {
+                    if (state.titleDraft.isNotBlank()) {
+                        onAction(NoteAction.InsertNote)
+                        scope.launch {
+                            snackBarHostState.showSnackbar("Note Saved !")
+                        }
+                    } else {
+                        scope.launch {
+                            snackBarHostState.showSnackbar("Title cannot be empty !")
+                        }
+                    }
+                },
                 text = { Text(text = "Save Note") },
                 icon = {
                     Icon(
@@ -102,8 +135,8 @@ private fun ScaffoldScreen(
                     )
                 }
             )
-        }
-
+        },
+        snackbarHost = { SnackbarHost(snackBarHostState) }
     ) { innerPadding ->
         ContentScreen(
             modifier = Modifier.padding(innerPadding),
@@ -113,6 +146,20 @@ private fun ScaffoldScreen(
         )
     }
 
+    if (state.showDiscardBottomSheet) {
+        SimpleConfirmationBottomSheet(
+            title = "Discard Changes",
+            text = "Are you sure you want to discard changes ?",
+            confirmButtonText = "Discard",
+            dismissButtonText = "Keep",
+            onConfirm = {
+                navigator.pop()
+            },
+            onDismiss = {
+                onAction(NoteAction.ShowDiscardBottomSheet(false))
+            }
+        )
+    }
 }
 
 @Composable
@@ -122,42 +169,32 @@ private fun ContentScreen(
     state: NoteState,
     onAction: (NoteAction) -> Unit,
 ) {
+    val scrollState = rememberScrollState()
     Column(
-        modifier = modifier.padding(start = 10.dp, end = 10.dp)
+        modifier = modifier
+            .padding(start = 10.dp, end = 10.dp)
+            .verticalScroll(scrollState, true)
     ) {
-        Row {
-            TextField(
-                modifier = Modifier.weight(1f),
-                value = state.titleDraft ?: "",
-                onValueChange = { onAction(NoteAction.TitleDraft(it)) },
-                placeholder = { Text(text = "Title") },
-                enabled = state.isTitleEditingEnabled
-            )
-            Spacer(Modifier.width(10.dp))
-            IconButton(
-                onClick = {
-                    if (state.isTitleEditingEnabled) {
-                        onAction(NoteAction.IsTitleEditEnabled(false))
-                    } else {
-                        onAction(NoteAction.IsTitleEditEnabled(true))
-                    }
-                }
-            ) {
-                Icon(
-                    imageVector =
-                        if (state.isTitleEditingEnabled)
-                            Icons.Rounded.Close
-                        else
-                            Icons.Rounded.Edit,
-                    contentDescription = "Edit Title"
-                )
-            }
-        }
-        Spacer(Modifier.height(10.dp))
         TextField(
             modifier = Modifier
-                .fillMaxSize(),
-            value = state.textDraft ?: "",
+                .fillMaxWidth(),
+            value = state.titleDraft,
+            onValueChange = { onAction(NoteAction.TitleDraft(it)) },
+            placeholder = { Text(text = "Title") },
+            colors = TextFieldDefaults.colors(
+                unfocusedContainerColor = Color.Transparent,
+                focusedContainerColor = Color.Transparent,
+                unfocusedIndicatorColor = Color.Transparent,
+                focusedIndicatorColor = Color.Transparent,
+                errorIndicatorColor = Color.Transparent,
+            ),
+            singleLine = false
+        )
+        HorizontalDivider(Modifier.padding(vertical = 10.dp))
+        TextField(
+            modifier = Modifier
+                .fillMaxWidth(),
+            value = state.textDraft,
             onValueChange = { onAction(NoteAction.TextDraft(it)) },
             placeholder = { Text(text = "Write something here...") },
             colors = TextFieldDefaults.colors(
