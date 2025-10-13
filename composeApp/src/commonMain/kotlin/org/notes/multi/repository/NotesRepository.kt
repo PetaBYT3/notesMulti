@@ -26,6 +26,6 @@ class NotesRepository(
     }
 
     suspend fun imageStorage(byteArray: ByteArray) : String? {
-        return saveImage(byteArray = byteArray)
+        return saveImage(image = byteArray)
     }
 }

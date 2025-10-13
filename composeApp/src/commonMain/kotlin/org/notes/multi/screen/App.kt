@@ -5,11 +5,13 @@ import androidx.compose.runtime.*
 import cafe.adriel.voyager.navigator.Navigator
 import cafe.adriel.voyager.transitions.SlideTransition
 import org.koin.compose.KoinApplication
+import org.notes.multi.createBaseDirectory
 import org.notes.multi.module.AppModule
 import org.notes.multi.route.Route
 
 @Composable
 fun App() {
+    createBaseDirectory()
     MaterialTheme {
         KoinApplication(
             application = {

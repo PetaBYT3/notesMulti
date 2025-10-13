@@ -51,6 +51,8 @@ import org.notes.multi.action.HomeAction
 import org.notes.multi.route.Route
 import org.notes.multi.state.HomeState
 import org.notes.multi.utilities.ComposableUnitBottomSheet
+import org.notes.multi.utilities.CustomDropDownMenu
+import org.notes.multi.utilities.MenuList
 import org.notes.multi.viewmodel.HomeViewModel
 
 @Composable
@@ -77,30 +79,11 @@ private fun ScaffoldScreen(
 ) {
     val snackBarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
-    val filePickerLauncher = rememberFilePickerLauncher(
-        type = PickerType.Image,
-        onResult = { file ->
-            scope.launch {
-                if (file != null) {
-                    val imageBytes = file.readBytes()
-                }
-            }
-        }
-    )
-
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text(text = "Home") },
                 actions = {
-                    IconButton(
-                        onClick = { filePickerLauncher.launch() }
-                    ) {
-                        Icon(
-                            imageVector = Icons.Rounded.Add,
-                            contentDescription = null
-                        )
-                    }
                 }
             )
         },
@@ -220,7 +203,6 @@ private fun ContentScreen(
                                 overflow = TextOverflow.Ellipsis,
                                 style = MaterialTheme.typography.bodyMedium
                             )
-
                         }
                         IconButton(
                             onClick = {

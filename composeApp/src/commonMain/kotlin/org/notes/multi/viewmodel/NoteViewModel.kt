@@ -9,6 +9,7 @@ import kotlinx.coroutines.launch
 import org.notes.multi.action.NoteAction
 import org.notes.multi.localdata.database.NotesEntity
 import org.notes.multi.repository.NotesRepository
+import org.notes.multi.saveImage
 import org.notes.multi.state.NoteState
 
 class NoteViewModel(
@@ -29,8 +30,8 @@ class NoteViewModel(
             is NoteAction.ShowDiscardBottomSheet -> {
                 showDiscardBottomSheet(action.showDiscardBottomSheet)
             }
-            is NoteAction.IsTitleEditEnabled -> {
-                isTitleEditEnabled(action.isEnabled)
+            is NoteAction.SaveImageByte -> {
+                saveImageByte(action.imageBytes)
             }
             is NoteAction.TitleDraft -> {
                 titleDraft(action.titleDraft)
@@ -49,6 +50,7 @@ class NoteViewModel(
             notesRepository.getNoteByUid(note.uId).collect { noteByUid ->
                 _state.update {
                     it.copy(
+                        imagePath = noteByUid.image.toString(),
                         uId = noteByUid.uId,
                         title = noteByUid.title,
                         text = noteByUid.text
@@ -57,6 +59,7 @@ class NoteViewModel(
             }
         }
         _state.update { it.copy(
+            imagePathDraft = note.image.toString(),
             uIdDraft = note.uId,
             titleDraft = note.title,
             textDraft = note.text
@@ -65,13 +68,15 @@ class NoteViewModel(
 
     private fun clearNote() {
         _state.update { it.copy(
+            imageByte = null,
             uId = 0,
             title = "",
             text = "",
+            imagePath = "",
             uIdDraft = 0,
             titleDraft = "",
             textDraft = "",
-            isTitleEditingEnabled = false
+            imagePathDraft = ""
         ) }
     }
 
@@ -79,8 +84,8 @@ class NoteViewModel(
         _state.update { it.copy(showDiscardBottomSheet = isShown) }
     }
 
-    private fun isTitleEditEnabled(isEnabled: Boolean) {
-        _state.update { it.copy(isTitleEditingEnabled = isEnabled) }
+    private fun saveImageByte(imageByte: List<Byte>) {
+        _state.update { it.copy(imageByte = imageByte) }
     }
 
     private fun titleDraft(title: String) {
@@ -91,18 +96,21 @@ class NoteViewModel(
     }
 
     private fun insertNote() {
+        val imageByte = _state.value.imageByte?.toByteArray()
+        val imagePath = saveImage(imageByte ?: byteArrayOf())
         val uIdDraft = _state.value.uIdDraft
         val titleDraft = _state.value.titleDraft
         val textDraft = _state.value.textDraft
         _state.update { it.copy(
             uId = uIdDraft,
             title = titleDraft,
-            text = textDraft
+            text = textDraft,
         ) }
         val noteDraft = NotesEntity(
             uId = uIdDraft,
             title = titleDraft,
-            text = textDraft
+            text = textDraft,
+            image = imagePath
         )
         viewModelScope.launch {
             notesRepository.insertNote(note = noteDraft)

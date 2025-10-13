@@ -20,15 +20,8 @@ import java.util.UUID
 import kotlin.coroutines.Continuation
 import kotlin.coroutines.resume
 
-class AndroidPlatform : Platform {
-    override val name: String = "Android ${Build.VERSION.SDK_INT}"
-}
-
-actual fun getPlatform(): Platform = AndroidPlatform()
-
-//Room Database
+//Get Context
 private lateinit var applicationContext: Context
-
 fun initAndroidContext(context: Context) {
     applicationContext = context
 }
@@ -40,18 +33,42 @@ actual fun getNotesDatabase(): NotesDatabase {
         name = dbFile.absolutePath,
     )
         .setDriver(BundledSQLiteDriver())
+        .fallbackToDestructiveMigration(true)
         .build()
 }
 
-actual suspend fun saveImage(byteArray: ByteArray): String? {
-    return try {
-        val fileName = "${UUID.randomUUID()}.jpg"
-        val file = File(applicationContext.filesDir, fileName)
-        file.writeBytes(byteArray)
-        file.absolutePath
-    } catch (e: Exception) {
-        null
+//Create Base Directory
+actual fun createBaseDirectory() {
+    val baseDir = applicationContext.getExternalFilesDir(null)
+    val listDir = listOf(
+        "images",
+        "videos",
+        "documents"
+    )
+
+    if (baseDir != null) {
+        for (dirName in listDir) {
+            val targetDir = File(baseDir, dirName)
+            if (!targetDir.exists()) {
+                targetDir.mkdirs()
+            }
+        }
     }
 }
 
-//Image Picker
+actual fun saveImage(image: ByteArray): String? {
+    val baseDir = applicationContext.getExternalFilesDir(null)
+    val fileName = "${UUID.randomUUID()}.jpg"
+    val targetDir = File(baseDir, "images")
+
+    val saveImage = File(targetDir, fileName)
+    saveImage.writeBytes(image)
+
+    return fileName
+}
+
+actual fun getImage(fileName: String): Any {
+    val baseDir = applicationContext.getExternalFilesDir(null)
+    val imageFile = File(baseDir, "images/$fileName")
+    return imageFile
+}

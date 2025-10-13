@@ -13,8 +13,8 @@ sealed interface NoteAction {
     //Discard BottomSheet
     data class ShowDiscardBottomSheet(val showDiscardBottomSheet: Boolean) : NoteAction
 
-    //Enable Title Editing
-    data class IsTitleEditEnabled(val isEnabled: Boolean) : NoteAction
+    //Save Image Byte
+    data class SaveImageByte(val imageBytes: List<Byte>) : NoteAction
 
     //Title Draft
     data class TitleDraft(val titleDraft: String) : NoteAction

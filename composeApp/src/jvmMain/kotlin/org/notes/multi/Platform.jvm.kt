@@ -8,31 +8,49 @@ import org.notes.multi.localdata.database.NotesDatabase
 import java.io.File
 import java.util.UUID
 
-class JVMPlatform: Platform {
-    override val name: String = "Java ${System.getProperty("java.version")}"
-}
-
-actual fun getPlatform(): Platform = JVMPlatform()
-
 //Room Database
 actual fun getNotesDatabase(): NotesDatabase {
-    val dbFile = File(System.getProperty("user.home"), "notes.db")
+    val baseDir = File(System.getProperty("user.home"), "NotesMulti")
+    val dbFile = File(baseDir, "database/notes.db")
     return Room.databaseBuilder<NotesDatabase>(
         name = dbFile.absolutePath,
     )
         .setDriver(BundledSQLiteDriver())
+        .fallbackToDestructiveMigration(true)
         .build()
 }
 
-actual suspend fun saveImage(byteArray: ByteArray): String? {
-    return try {
-        val fileName = "${UUID.randomUUID()}.jpg"
-        val file = File(System.getProperty("user.home"), fileName)
-        file.writeBytes(byteArray)
-        file.absolutePath
-    } catch (e: Exception) {
-        null
+//Create Base Directory
+actual fun createBaseDirectory() {
+    val baseDir = File(System.getProperty("user.home"), "NotesMulti")
+    val listDir = listOf(
+        "images",
+        "videos",
+        "documents",
+        "database"
+    )
+
+    for (dirName in listDir) {
+        val targetDir = File(baseDir, dirName)
+        if (!targetDir.exists()) {
+            targetDir.mkdirs()
+        }
     }
 }
 
-//Image Picker
+actual fun saveImage(image: ByteArray): String? {
+    val baseDir = File(System.getProperty("user.home"), "NotesMulti")
+    val fileName = "${UUID.randomUUID()}.jpg"
+    val file = File(baseDir, "images")
+
+    val saveImage = File(file, fileName)
+    saveImage.writeBytes(image)
+
+    return fileName
+}
+
+actual fun getImage(fileName: String): Any {
+    val baseDir = File(System.getProperty("user.home"), "NotesMulti")
+    val imageFile = File(baseDir, "images/$fileName")
+    return imageFile
+}

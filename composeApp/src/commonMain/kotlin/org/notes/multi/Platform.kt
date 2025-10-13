@@ -2,17 +2,14 @@ package org.notes.multi
 
 import androidx.compose.runtime.Composable
 import org.notes.multi.localdata.database.NotesDatabase
-
-interface Platform {
-    val name: String
-}
-
-expect fun getPlatform(): Platform
-
 //Room Database
 expect fun getNotesDatabase(): NotesDatabase
 
-//Save Image
-expect suspend fun saveImage(byteArray: ByteArray): String?
+//Create Base Directory
+expect fun createBaseDirectory()
 
-//Image Picker
+//Save Image
+expect fun saveImage(image: ByteArray): String?
+
+//Get Image
+expect fun getImage(fileName: String) : Any

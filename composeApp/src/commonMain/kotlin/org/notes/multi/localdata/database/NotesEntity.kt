@@ -10,5 +10,5 @@ data class NotesEntity(
     @PrimaryKey(autoGenerate = true) val uId : Int = 0,
     val title : String,
     val text : String,
-    val imagePath : String? = null
+    val image : String? = ""
 )
