@@ -24,6 +24,7 @@ androidx-navigation = "2.9.5"
 kotlin-serialization = "1.9.0"
 coil = "3.3.0"
 filekit = "0.8.8"
+kotlin-parcelize = "1.9.21"
 
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
@@ -78,5 +79,8 @@ ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 #Room Database
 room = { id = "androidx.room", version.ref = "room" }
 
-#Navigation
+#Serialization
 kotlinxSerialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+
+#Parcelable
+kotlin-parcelize = { id = "org.jetbrains.kotlin.plugin.parcelize", version.ref = "kotlin" }

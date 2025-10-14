@@ -25,8 +25,8 @@ import kotlinx.coroutines.launch
 fun SimpleConfirmationBottomSheet(
     title: String,
     text: String,
-    confirmButtonText: String,
-    dismissButtonText: String,
+    onConfirmText: String,
+    onDismissText: String,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -64,7 +64,7 @@ fun SimpleConfirmationBottomSheet(
                         }
                     }
                 ) {
-                    Text(text = dismissButtonText)
+                    Text(text = onDismissText)
                 }
                 Spacer(Modifier.width(10.dp))
                 Button(
@@ -79,7 +79,7 @@ fun SimpleConfirmationBottomSheet(
                         }
                     }
                 ) {
-                    Text(text = confirmButtonText)
+                    Text(text = onConfirmText)
                 }
             }
             Spacer(Modifier.height(15.dp))

@@ -1,12 +1,18 @@
 package org.notes.multi
 
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
 import androidx.room.Room
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
-import kotlinx.coroutines.Dispatchers
 import org.notes.multi.localdata.database.NotesDatabase
 import java.io.File
 import java.util.UUID
+
+//App Theme
+@Composable
+actual fun isSystemDarkTheme(): Boolean {
+    return isSystemInDarkTheme()
+}
 
 //Room Database
 actual fun getNotesDatabase(): NotesDatabase {
@@ -49,8 +55,17 @@ actual fun saveImage(image: ByteArray): String? {
     return fileName
 }
 
-actual fun getImage(fileName: String): Any {
+actual fun deleteImage(image: String) {
     val baseDir = File(System.getProperty("user.home"), "NotesMulti")
-    val imageFile = File(baseDir, "images/$fileName")
+    val imageFile = File(baseDir, "images/$image")
+
+    if (imageFile.exists()) {
+        imageFile.delete()
+    }
+}
+
+actual fun getImage(image: String): Any {
+    val baseDir = File(System.getProperty("user.home"), "NotesMulti")
+    val imageFile = File(baseDir, "images/$image")
     return imageFile
 }

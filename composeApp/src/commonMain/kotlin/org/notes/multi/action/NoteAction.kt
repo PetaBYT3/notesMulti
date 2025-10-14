@@ -11,10 +11,19 @@ sealed interface NoteAction {
     data object ClearNote : NoteAction
 
     //Discard BottomSheet
-    data class ShowDiscardBottomSheet(val showDiscardBottomSheet: Boolean) : NoteAction
+    data class BottomSheetDiscard(val isShown: Boolean) : NoteAction
 
-    //Save Image Byte
-    data class SaveImageByte(val imageBytes: List<Byte>) : NoteAction
+    //Dropdown Image
+    data class DropDownImage(val isExpanded: Boolean) : NoteAction
+
+    //BottomSheet Delete Image
+    data class BottomSheetDeleteImage(val isShown: Boolean) : NoteAction
+
+    //Save Image
+    data class SaveImage(val imageBytes: List<Byte>) : NoteAction
+
+    //Delete Image
+    data object DeleteImage : NoteAction
 
     //Title Draft
     data class TitleDraft(val titleDraft: String) : NoteAction

@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.notes.multi.action.HomeAction
+import org.notes.multi.deleteImage
 import org.notes.multi.localdata.database.NotesEntity
 import org.notes.multi.repository.NotesRepository
 import org.notes.multi.state.HomeState
@@ -25,7 +26,7 @@ class HomeViewModel(
     fun onAction(action: HomeAction) {
         when (action) {
             is HomeAction.InsertNotes -> {
-                insertNotes(note = action.newNotes)
+                upsertNotes(note = action.newNotes)
             }
             is HomeAction.ShowDeleteBottomSheet -> {
                 showDeleteBottomSheet(
@@ -51,9 +52,9 @@ class HomeViewModel(
         }
     }
 
-    private fun insertNotes(note: NotesEntity) {
+    private fun upsertNotes(note: NotesEntity) {
         viewModelScope.launch {
-            notesRepository.insertNote(note)
+            notesRepository.upsertNote(note)
         }
     }
 
@@ -73,5 +74,6 @@ class HomeViewModel(
         viewModelScope.launch {
             notesRepository.deleteNote(noteToDelete)
         }
+        deleteImage(noteToDelete.image)
     }
 }

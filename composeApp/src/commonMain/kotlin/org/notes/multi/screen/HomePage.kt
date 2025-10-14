@@ -17,6 +17,7 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.Image
 import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -37,17 +38,22 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.Navigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import coil3.compose.AsyncImage
+import coil3.compose.LocalPlatformContext
+import coil3.request.ImageRequest
+import coil3.request.crossfade
 import io.github.vinceglb.filekit.compose.rememberFilePickerLauncher
 import io.github.vinceglb.filekit.core.PickerType
 import kotlinx.coroutines.launch
 import org.koin.compose.viewmodel.koinViewModel
 import org.notes.multi.action.HomeAction
+import org.notes.multi.getImage
 import org.notes.multi.route.Route
 import org.notes.multi.state.HomeState
 import org.notes.multi.utilities.ComposableUnitBottomSheet
@@ -188,17 +194,49 @@ private fun ContentScreen(
                         Column(
                             modifier = Modifier
                                 .padding(10.dp)
-                                .height(150.dp)
                         ) {
-                            Box {
-                                Text(
-                                    text = note.title,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(100.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                ) {
+                                    if (note.image.isNotBlank()) {
+                                        AsyncImage(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .height(200.dp),
+                                            model = ImageRequest.Builder(LocalPlatformContext.current)
+                                                .data(getImage(note.image))
+                                                .crossfade(true)
+                                                .build(),
+                                            contentScale = ContentScale.Crop,
+                                            alignment = Alignment.Center,
+                                            contentDescription = "Image",
+                                        )
+                                    } else {
+                                        Icon(
+                                            modifier = Modifier
+                                                .align(Alignment.Center),
+                                            imageVector = Icons.Rounded.Image,
+                                            contentDescription = "Image",
+                                        )
+                                    }
+                                }
                             }
+                            Spacer(Modifier.height(10.dp))
+                            Text(
+                                text = note.title,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
                             HorizontalDivider(Modifier.padding(vertical = 10.dp))
                             Text(
+                                modifier = Modifier
+                                    .height(100.dp),
                                 text = note.text,
                                 overflow = TextOverflow.Ellipsis,
                                 style = MaterialTheme.typography.bodyMedium

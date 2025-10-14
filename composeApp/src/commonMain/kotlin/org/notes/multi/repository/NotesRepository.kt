@@ -17,8 +17,8 @@ class NotesRepository(
         return noteDao.getNoteByUid(uId = uId)
     }
 
-    suspend fun insertNote(note: NotesEntity) {
-        noteDao.insertNote(note)
+    suspend fun upsertNote(note: NotesEntity) {
+        noteDao.upsertNote(note)
     }
 
     suspend fun deleteNote(note: NotesEntity) {

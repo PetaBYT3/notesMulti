@@ -30,57 +30,36 @@ data class MenuList(
 
 @Composable
 fun CustomDropDownMenu(
-    modifier: Modifier = Modifier,
     menuList: List<MenuList>,
+    isExpanded: Boolean,
+    onDismiss: () -> Unit
 ) {
-    var expanded by rememberSaveable { mutableStateOf(false) }
-
-    Box(
-        modifier = modifier
-            .wrapContentSize(Alignment.TopStart)
-    ) {
-        IconButton(
-            onClick = {
-                if (expanded) {
-                    expanded = false
-                } else {
-                    expanded = true
-                }
-            }
-        ) {
-            Icon(
-                imageVector = Icons.Default.MoreVert,
-                contentDescription = "Open Menu"
-            )
+    DropdownMenu(
+        expanded = isExpanded,
+        onDismissRequest = {
+            onDismiss.invoke()
         }
-
-        DropdownMenu(
-            expanded = expanded,
-            onDismissRequest = {
-                expanded = false
-            }
-        ) {
-            menuList.forEach { menu ->
-                DropdownMenuItem(
-                    text = {
-                        Row(
-                            modifier = Modifier,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = menu.icon,
-                                contentDescription = null
-                            )
-                            Spacer(Modifier.width(10.dp))
-                            Text(text = menu.title)
-                        }
-                    },
-                    onClick = {
-                        menu.onClick()
-                        expanded = false
+    ) {
+        menuList.forEach { menu ->
+            DropdownMenuItem(
+                text = {
+                    Row(
+                        modifier = Modifier,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = menu.icon,
+                            contentDescription = null
+                        )
+                        Spacer(Modifier.width(10.dp))
+                        Text(text = menu.title)
                     }
-                )
-            }
+                },
+                onClick = {
+                    menu.onClick()
+                    onDismiss.invoke()
+                }
+            )
         }
     }
 }

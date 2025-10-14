@@ -1,25 +1,20 @@
 package org.notes.multi.screen
 
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.ArrowBack
-import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Delete
-import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.Image
-import androidx.compose.material.icons.rounded.Remove
+import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.Save
 import androidx.compose.material.icons.rounded.Upload
 import androidx.compose.material3.Card
@@ -28,6 +23,7 @@ import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -38,21 +34,19 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import cafe.adriel.voyager.core.annotation.InternalVoyagerApi
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.Navigator
 import cafe.adriel.voyager.navigator.currentOrThrow
+import cafe.adriel.voyager.navigator.internal.BackHandler
 import coil3.compose.AsyncImage
 import coil3.compose.LocalPlatformContext
 import coil3.request.ImageRequest
@@ -64,15 +58,13 @@ import org.koin.compose.viewmodel.koinViewModel
 import org.notes.multi.action.NoteAction
 import org.notes.multi.getImage
 import org.notes.multi.localdata.database.NotesEntity
-import org.notes.multi.saveImage
 import org.notes.multi.utilities.SimpleConfirmationBottomSheet
 import org.notes.multi.state.NoteState
 import org.notes.multi.utilities.CustomDropDownMenu
 import org.notes.multi.utilities.MenuList
 import org.notes.multi.viewmodel.NoteViewModel
-import java.io.File
-import kotlin.io.path.Path
 
+@OptIn(InternalVoyagerApi::class)
 @Composable
 fun NoteScreen(
     note: NotesEntity?,
@@ -82,12 +74,13 @@ fun NoteScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val onAction = viewModel::onAction
 
-    ScaffoldScreen(
-        note = note,
-        navigator = navigator,
-        state = state,
-        onAction = onAction,
-    )
+    BackHandler(enabled = true) {
+        unSavedChangesHandler(
+            state = state,
+            onAction = onAction,
+            navigator = navigator
+        )
+    }
 
     LaunchedEffect(note) {
         if (note != null) {
@@ -96,6 +89,13 @@ fun NoteScreen(
             onAction(NoteAction.ClearNote)
         }
     }
+
+    ScaffoldScreen(
+        note = note,
+        navigator = navigator,
+        state = state,
+        onAction = onAction,
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -115,11 +115,11 @@ private fun ScaffoldScreen(
                 navigationIcon = {
                     IconButton(
                         onClick = {
-                            if (state.title != state.titleDraft || state.text != state.textDraft) {
-                                onAction(NoteAction.ShowDiscardBottomSheet(true))
-                            } else {
-                                navigator.pop()
-                            }
+                            unSavedChangesHandler(
+                                state = state,
+                                onAction = onAction,
+                                navigator = navigator
+                            )
                         }
                     ) {
                         Icon(
@@ -165,22 +165,38 @@ private fun ScaffoldScreen(
         ContentScreen(
             modifier = Modifier.padding(innerPadding),
             navigator = navigator,
+            snackBarHostState = snackBarHostState,
             state = state,
             onAction = onAction,
         )
     }
 
-    if (state.showDiscardBottomSheet) {
+    if (state.bottomSheetDiscard) {
         SimpleConfirmationBottomSheet(
             title = "Discard Changes",
             text = "Are you sure you want to discard changes ?",
-            confirmButtonText = "Discard",
-            dismissButtonText = "Keep",
+            onConfirmText = "Discard",
+            onDismissText = "Keep",
             onConfirm = {
                 navigator.pop()
             },
             onDismiss = {
-                onAction(NoteAction.ShowDiscardBottomSheet(false))
+                onAction(NoteAction.BottomSheetDiscard(false))
+            }
+        )
+    }
+
+    if (state.bottomSheetDeleteImage) {
+        SimpleConfirmationBottomSheet(
+            title = "Delete Image",
+            text = "Are you sure you want to delete image ?",
+            onConfirmText = "Delete",
+            onDismissText = "Cancel",
+            onConfirm = {
+                onAction(NoteAction.DeleteImage)
+            },
+            onDismiss = {
+                onAction(NoteAction.BottomSheetDeleteImage(false))
             }
         )
     }
@@ -190,10 +206,10 @@ private fun ScaffoldScreen(
 private fun ContentScreen(
     modifier: Modifier = Modifier,
     navigator: Navigator,
+    snackBarHostState: SnackbarHostState,
     state: NoteState,
     onAction: (NoteAction) -> Unit,
 ) {
-    val context = LocalPlatformContext.current
     val scrollState = rememberScrollState()
     val scope = rememberCoroutineScope()
     val imagePicker = rememberFilePickerLauncher(
@@ -202,7 +218,7 @@ private fun ContentScreen(
             scope.launch {
                 if (file != null) {
                     val imageByte = file.readBytes().toList()
-                    onAction(NoteAction.SaveImageByte(imageByte))
+                    onAction(NoteAction.SaveImage(imageByte))
                 }
             }
         }
@@ -222,13 +238,13 @@ private fun ContentScreen(
                 modifier = Modifier
                     .fillMaxSize()
             ) {
-                if (state.imagePathDraft.isNotBlank()) {
+                if (state.imageName.isNotBlank()) {
                     AsyncImage(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(200.dp),
-                        model = ImageRequest.Builder(context)
-                            .data(getImage(state.imagePathDraft))
+                        model = ImageRequest.Builder(LocalPlatformContext.current)
+                            .data(getImage(state.imageName))
                             .crossfade(true)
                             .build(),
                         contentScale = ContentScale.Crop,
@@ -243,23 +259,49 @@ private fun ContentScreen(
                         contentDescription = "Image",
                     )
                 }
-                val menuList = listOf(
-                    MenuList(
-                        title = "Upload Image",
-                        icon = Icons.Rounded.Upload,
-                        onClick = { imagePicker.launch() }
-                    ),
-                    MenuList(
-                        title = "Delete Image",
-                        icon = Icons.Rounded.Delete,
-                        onClick = {}
-                    ),
-                )
-                CustomDropDownMenu(
+                Box(
                     modifier = Modifier
-                        .align(Alignment.TopEnd),
-                    menuList = menuList
-                )
+                        .align(Alignment.TopEnd)
+                ) {
+                    IconButton(
+                        onClick = {
+                            onAction(NoteAction.DropDownImage(true))
+                        }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.MoreVert,
+                            contentDescription = "More",
+                        )
+                    }
+                    val menuList = listOf(
+                        MenuList(
+                            title = "Upload Image",
+                            icon = Icons.Rounded.Upload,
+                            onClick = { imagePicker.launch() }
+                        ),
+                        MenuList(
+                            title = "Delete Image",
+                            icon = Icons.Rounded.Delete,
+                            onClick = {
+                                if (state.imageName.isNotBlank()) {
+                                    onAction(NoteAction.BottomSheetDeleteImage(true))
+                                } else {
+                                    scope.launch {
+                                        snackBarHostState.showSnackbar(
+                                            message = "No image to delete !",
+                                            withDismissAction = true
+                                        )
+                                    }
+                                }
+                            }
+                        ),
+                    )
+                    CustomDropDownMenu(
+                        menuList = menuList,
+                        isExpanded = state.dropDownImage,
+                        onDismiss = { onAction(NoteAction.DropDownImage(false)) }
+                    )
+                }
             }
         }
         Spacer(Modifier.height(10.dp))
@@ -294,5 +336,17 @@ private fun ContentScreen(
             ),
             singleLine = false
         )
+    }
+}
+
+private fun unSavedChangesHandler(
+    state: NoteState,
+    onAction: (NoteAction) -> Unit,
+    navigator: Navigator,
+) {
+    if (state.title != state.titleDraft || state.text != state.textDraft) {
+        onAction(NoteAction.BottomSheetDiscard(true))
+    } else {
+        navigator.pop()
     }
 }

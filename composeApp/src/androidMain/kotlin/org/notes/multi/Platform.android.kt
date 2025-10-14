@@ -1,24 +1,18 @@
 package org.notes.multi
 
 import android.content.Context
-import android.net.Uri
-import android.os.Build
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.platform.LocalContext
 import androidx.room.Room
-import androidx.room.RoomDatabase
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.suspendCancellableCoroutine
 import org.notes.multi.localdata.database.NotesDatabase
 import java.io.File
-import java.lang.Exception
-import java.nio.file.Files
 import java.util.UUID
-import kotlin.coroutines.Continuation
-import kotlin.coroutines.resume
+
+@Composable
+actual fun isSystemDarkTheme(): Boolean {
+    return isSystemInDarkTheme()
+}
 
 //Get Context
 private lateinit var applicationContext: Context
@@ -67,8 +61,17 @@ actual fun saveImage(image: ByteArray): String? {
     return fileName
 }
 
-actual fun getImage(fileName: String): Any {
+actual fun deleteImage(image: String) {
     val baseDir = applicationContext.getExternalFilesDir(null)
-    val imageFile = File(baseDir, "images/$fileName")
+    val imageFile = File(baseDir, "images/$image")
+
+    if (imageFile.exists()) {
+        imageFile.delete()
+    }
+}
+
+actual fun getImage(image: String): Any {
+    val baseDir = applicationContext.getExternalFilesDir(null)
+    val imageFile = File(baseDir, "images/$image")
     return imageFile
 }

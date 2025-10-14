@@ -8,11 +8,12 @@ import org.koin.compose.KoinApplication
 import org.notes.multi.createBaseDirectory
 import org.notes.multi.module.AppModule
 import org.notes.multi.route.Route
+import org.notes.multi.theme.AppTheme
 
 @Composable
 fun App() {
     createBaseDirectory()
-    MaterialTheme {
+    AppTheme {
         KoinApplication(
             application = {
                 modules(AppModule.getAll())
