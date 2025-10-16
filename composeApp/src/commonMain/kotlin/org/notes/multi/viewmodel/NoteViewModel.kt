@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.notes.multi.action.NoteAction
@@ -12,6 +14,7 @@ import org.notes.multi.localdata.database.NotesEntity
 import org.notes.multi.repository.NotesRepository
 import org.notes.multi.saveImage
 import org.notes.multi.state.NoteState
+import kotlin.coroutines.suspendCoroutine
 
 class NoteViewModel(
     private val notesRepository: NotesRepository,
@@ -23,10 +26,7 @@ class NoteViewModel(
     fun onAction(action: NoteAction) {
         when (action) {
             is NoteAction.SelectedNotes -> {
-                putSelectedNotes(action.note)
-            }
-            NoteAction.ClearNote -> {
-                clearNote()
+                putSelectedNotes(action.uId)
             }
             is NoteAction.BottomSheetDiscard -> {
                 bottomSheetDiscard(action.isShown)
@@ -55,36 +55,35 @@ class NoteViewModel(
         }
     }
 
-    private fun putSelectedNotes(note: NotesEntity) {
+    private fun putSelectedNotes(uId: Int?) {
         viewModelScope.launch {
-            notesRepository.getNoteByUid(note.uId).collect { noteByUid ->
+            if (uId != null) {
+                val noteByUid = notesRepository.getNoteByUid(uId).first()
                 _state.update {
                     it.copy(
                         imageName = noteByUid.image,
                         uId = noteByUid.uId,
                         title = noteByUid.title,
-                        text = noteByUid.text
+                        text = noteByUid.text,
+                        uIdDraft = noteByUid.uId,
+                        titleDraft = noteByUid.title,
+                        textDraft = noteByUid.text,
+                    )
+                }
+            } else {
+                _state.update {
+                    it.copy(
+                        imageName = "",
+                        uId = 0,
+                        title = "",
+                        text = "",
+                        uIdDraft = 0,
+                        titleDraft = "",
+                        textDraft = "",
                     )
                 }
             }
         }
-        _state.update { it.copy(
-            uIdDraft = note.uId,
-            titleDraft = note.title,
-            textDraft = note.text
-        ) }
-    }
-
-    private fun clearNote() {
-        _state.update { it.copy(
-            imageName = "",
-            uId = 0,
-            title = "",
-            text = "",
-            uIdDraft = 0,
-            titleDraft = "",
-            textDraft = "",
-        ) }
     }
 
     private fun bottomSheetDiscard(isShown: Boolean) {
@@ -141,12 +140,13 @@ class NoteViewModel(
             uId = uIdDraft,
             title = titleDraft,
             text = textDraft,
+            imageName = image
         ) }
         val noteDraft = NotesEntity(
             uId = uIdDraft,
             title = titleDraft,
             text = textDraft,
-            image = image
+            image = image,
         )
         viewModelScope.launch {
             notesRepository.upsertNote(note = noteDraft)

@@ -11,16 +11,16 @@ import org.notes.multi.viewmodel.NoteViewModel
 
 object AppModule {
 
-    val databaseModule = module {
+    private val databaseModule = module {
         single { getNotesDatabase() }
         single { get<NotesDatabase>().notesDao() }
     }
 
-    val repositoryModule = module {
+    private val repositoryModule = module {
         singleOf(::NotesRepository)
     }
 
-    val viewModelModule = module {
+    private val viewModelModule = module {
         viewModelOf(::HomeViewModel)
         viewModelOf(::NoteViewModel)
     }

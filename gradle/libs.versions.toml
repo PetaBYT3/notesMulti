@@ -49,6 +49,8 @@ koin-compose-viewmodel = { module = "io.insert-koin:koin-compose-viewmodel", ver
 voyager-navigator = { module = "cafe.adriel.voyager:voyager-navigator", version.ref = "voyager" }
 voyager-koin = { module = "cafe.adriel.voyager:voyager-koin", version.ref = "voyager" }
 voyager-transitions = { module = "cafe.adriel.voyager:voyager-transitions", version.ref = "voyager" }
+voyager-core = { module = "cafe.adriel.voyager:voyager-core", version.ref = "voyager" }
+voyager-screenmodel = { module = "cafe.adriel.voyager:voyager-screenmodel", version.ref = "voyager" }
 
 #Room Database
 room-runtime = { module = "androidx.room:room-runtime", version.ref = "room" }

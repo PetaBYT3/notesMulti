@@ -1,6 +1,7 @@
 package org.notes.multi.screen
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,6 +15,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Delete
@@ -38,6 +40,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -48,8 +51,6 @@ import coil3.compose.AsyncImage
 import coil3.compose.LocalPlatformContext
 import coil3.request.ImageRequest
 import coil3.request.crossfade
-import io.github.vinceglb.filekit.compose.rememberFilePickerLauncher
-import io.github.vinceglb.filekit.core.PickerType
 import kotlinx.coroutines.launch
 import org.koin.compose.viewmodel.koinViewModel
 import org.notes.multi.action.HomeAction
@@ -57,8 +58,6 @@ import org.notes.multi.getImage
 import org.notes.multi.route.Route
 import org.notes.multi.state.HomeState
 import org.notes.multi.utilities.ComposableUnitBottomSheet
-import org.notes.multi.utilities.CustomDropDownMenu
-import org.notes.multi.utilities.MenuList
 import org.notes.multi.viewmodel.HomeViewModel
 
 @Composable
@@ -96,7 +95,7 @@ private fun ScaffoldScreen(
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 onClick = {
-                    navigator.push(Route.NoteRoute(note = null))
+                    navigator.push(Route.NoteRoute(uId = null))
                 },
                 text = { Text(text = "Create New Note") },
                 icon = {
@@ -167,6 +166,7 @@ private fun ScaffoldScreen(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun ContentScreen(
     modifier: Modifier = Modifier,
@@ -186,45 +186,41 @@ private fun ContentScreen(
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(5.dp),
+                            .padding(5.dp)
+                            .clip(RoundedCornerShape(20.dp)),
                         onClick = {
-                            navigator.push(Route.NoteRoute(note = note))
+                            navigator.push(Route.NoteRoute(uId = note.uId))
                         }
                     ) {
                         Column(
                             modifier = Modifier
                                 .padding(10.dp)
                         ) {
-                            Card(
+                            Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .height(100.dp)
+                                    .height(50.dp)
+                                    .clip(RoundedCornerShape(15.dp))
                             ) {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                ) {
-                                    if (note.image.isNotBlank()) {
-                                        AsyncImage(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .height(200.dp),
-                                            model = ImageRequest.Builder(LocalPlatformContext.current)
-                                                .data(getImage(note.image))
-                                                .crossfade(true)
-                                                .build(),
-                                            contentScale = ContentScale.Crop,
-                                            alignment = Alignment.Center,
-                                            contentDescription = "Image",
-                                        )
-                                    } else {
-                                        Icon(
-                                            modifier = Modifier
-                                                .align(Alignment.Center),
-                                            imageVector = Icons.Rounded.Image,
-                                            contentDescription = "Image",
-                                        )
-                                    }
+                                if (note.image.isNotBlank()) {
+                                    AsyncImage(
+                                        modifier = Modifier
+                                            .fillMaxSize(),
+                                        model = ImageRequest.Builder(LocalPlatformContext.current)
+                                            .data(getImage(note.image))
+                                            .crossfade(true)
+                                            .build(),
+                                        contentScale = ContentScale.Crop,
+                                        alignment = Alignment.Center,
+                                        contentDescription = "Image",
+                                    )
+                                } else {
+                                    Icon(
+                                        modifier = Modifier
+                                            .align(Alignment.Center),
+                                        imageVector = Icons.Rounded.Image,
+                                        contentDescription = "Image",
+                                    )
                                 }
                             }
                             Spacer(Modifier.height(10.dp))

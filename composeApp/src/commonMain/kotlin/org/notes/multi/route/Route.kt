@@ -21,12 +21,11 @@ sealed interface Route: Screen {
 
     @Serializable
     data class NoteRoute(
-        val note: NotesEntity? = null
+        val uId : Int? = null
     ) : Route {
         @Composable
         override fun Content() {
-            NoteScreen(note = note)
+            NoteScreen(uId = uId)
         }
     }
-
 }

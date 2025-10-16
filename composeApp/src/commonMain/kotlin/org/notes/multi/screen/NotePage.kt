@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ArrowBack
@@ -38,6 +39,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
@@ -67,12 +69,16 @@ import org.notes.multi.viewmodel.NoteViewModel
 @OptIn(InternalVoyagerApi::class)
 @Composable
 fun NoteScreen(
-    note: NotesEntity?,
+    uId: Int?,
     viewModel: NoteViewModel = koinViewModel(),
     navigator: Navigator = LocalNavigator.currentOrThrow,
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val onAction = viewModel::onAction
+
+    LaunchedEffect(uId) {
+        onAction(NoteAction.SelectedNotes(uId))
+    }
 
     BackHandler(enabled = true) {
         unSavedChangesHandler(
@@ -82,16 +88,7 @@ fun NoteScreen(
         )
     }
 
-    LaunchedEffect(note) {
-        if (note != null) {
-            onAction(NoteAction.SelectedNotes(note))
-        } else {
-            onAction(NoteAction.ClearNote)
-        }
-    }
-
     ScaffoldScreen(
-        note = note,
         navigator = navigator,
         state = state,
         onAction = onAction,
@@ -101,7 +98,6 @@ fun NoteScreen(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ScaffoldScreen(
-    note: NotesEntity?,
     navigator: Navigator,
     state: NoteState,
     onAction: (NoteAction) -> Unit,
@@ -136,12 +132,7 @@ private fun ScaffoldScreen(
                 onClick = {
                     if (state.titleDraft.isNotBlank()) {
                         onAction(NoteAction.InsertNote)
-                        scope.launch {
-                            snackBarHostState.showSnackbar(
-                                message = "Note Saved !",
-                                withDismissAction = true
-                            )
-                        }
+                        navigator.pop()
                     } else {
                         scope.launch {
                             snackBarHostState.showSnackbar(
@@ -232,7 +223,8 @@ private fun ContentScreen(
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(200.dp),
+                .height(200.dp)
+                .clip(RoundedCornerShape(20.dp)),
         ) {
             Box(
                 modifier = Modifier

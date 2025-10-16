@@ -59,6 +59,8 @@ kotlin {
             api(libs.voyager.navigator)
             api(libs.voyager.koin)
             api(libs.voyager.transitions)
+            api(libs.voyager.core)
+            api(libs.voyager.screenmodel)
 
             //Kotlinx Serialization
             api(libs.kotlinx.serialization.json)
