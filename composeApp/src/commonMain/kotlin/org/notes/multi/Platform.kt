@@ -13,11 +13,11 @@ expect fun getNotesDatabase(): NotesDatabase
 //Create Base Directory
 expect fun createBaseDirectory()
 
-//Save Image
+//Image File Extension
 expect fun saveImage(image: ByteArray): String?
-
-//Delete Image
 expect fun deleteImage(image: String)
-
-//Get Image
 expect fun getImage(image: String) : Any
+
+//Document File Extension
+expect fun saveDocument(documentByte: ByteArray, documentExtension: String): String
+expect fun getDocument(documentName: String)

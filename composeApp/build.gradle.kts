@@ -61,6 +61,7 @@ kotlin {
             api(libs.voyager.transitions)
             api(libs.voyager.core)
             api(libs.voyager.screenmodel)
+            api(libs.androidx.compose.navigation)
 
             //Kotlinx Serialization
             api(libs.kotlinx.serialization.json)
@@ -71,6 +72,7 @@ kotlin {
 
             //File Picker
             api(libs.filekit.compose)
+            api(libs.filekit.core)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

@@ -25,6 +25,9 @@ sealed interface NoteAction {
     //Title Draft
     data class TitleDraft(val titleDraft: String) : NoteAction
 
+    //Document
+    data class SaveDocument(val documentByte: List<Byte>, val documentExtension: String) : NoteAction
+
     //Text Draft
     data class TextDraft(val textDraft: String) : NoteAction
 

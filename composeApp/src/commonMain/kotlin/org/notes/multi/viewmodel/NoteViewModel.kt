@@ -5,16 +5,15 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.notes.multi.action.NoteAction
 import org.notes.multi.deleteImage
 import org.notes.multi.localdata.database.NotesEntity
 import org.notes.multi.repository.NotesRepository
+import org.notes.multi.saveDocument
 import org.notes.multi.saveImage
 import org.notes.multi.state.NoteState
-import kotlin.coroutines.suspendCoroutine
 
 class NoteViewModel(
     private val notesRepository: NotesRepository,
@@ -46,6 +45,9 @@ class NoteViewModel(
             is NoteAction.TitleDraft -> {
                 titleDraft(action.titleDraft)
             }
+            is NoteAction.SaveDocument -> {
+                documentDraft(action.documentByte, action.documentExtension)
+            }
             is NoteAction.TextDraft -> {
                 textDraft(action.textDraft)
             }
@@ -61,9 +63,10 @@ class NoteViewModel(
                 val noteByUid = notesRepository.getNoteByUid(uId).first()
                 _state.update {
                     it.copy(
-                        imageName = noteByUid.image,
                         uId = noteByUid.uId,
+                        imageName = noteByUid.image,
                         title = noteByUid.title,
+                        document = noteByUid.document,
                         text = noteByUid.text,
                         uIdDraft = noteByUid.uId,
                         titleDraft = noteByUid.title,
@@ -73,8 +76,8 @@ class NoteViewModel(
             } else {
                 _state.update {
                     it.copy(
-                        imageName = "",
                         uId = 0,
+                        imageName = "",
                         title = "",
                         text = "",
                         uIdDraft = 0,
@@ -102,9 +105,10 @@ class NoteViewModel(
         val imageFile = saveImage(imageByte.toByteArray())
         val noteDraft = NotesEntity(
             uId = _state.value.uIdDraft,
+            image = imageFile.toString(),
+            document = _state.value.fileName,
             title = _state.value.titleDraft,
             text = _state.value.textDraft,
-            image = imageFile.toString()
         )
         viewModelScope.launch {
             notesRepository.upsertNote(note = noteDraft)
@@ -114,9 +118,10 @@ class NoteViewModel(
     private fun deleteImage() {
         val noteDraft = NotesEntity(
             uId = _state.value.uIdDraft,
+            image = "",
+            document = _state.value.fileName,
             title = _state.value.titleDraft,
             text = _state.value.textDraft,
-            image = ""
         )
         viewModelScope.launch {
             notesRepository.upsertNote(note = noteDraft)
@@ -127,26 +132,45 @@ class NoteViewModel(
     private fun titleDraft(title: String) {
         _state.update { it.copy(titleDraft = title) }
     }
+
+    private fun documentDraft(
+        documentByte: List<Byte>,
+        documentExtension: String,
+    ) {
+        _state.update {
+            it.copy(
+                documentByteDraft = documentByte,
+                documentExtensionDraft = documentExtension,
+            )
+        }
+    }
+
     private fun textDraft(text: String) {
         _state.update { it.copy(textDraft = text) }
     }
 
     private fun insertNote() {
-        val image = _state.value.imageName
         val uIdDraft = _state.value.uIdDraft
+        val image = _state.value.imageName
+        val file = _state.value.fileName
         val titleDraft = _state.value.titleDraft
         val textDraft = _state.value.textDraft
         _state.update { it.copy(
             uId = uIdDraft,
+            imageName = image,
+            fileName = file,
             title = titleDraft,
             text = textDraft,
-            imageName = image
         ) }
+        val documentByte = _state.value.documentByteDraft.toByteArray()
+        val documentExtension = _state.value.documentExtensionDraft
+        val saveDocument = saveDocument(documentByte, documentExtension)
         val noteDraft = NotesEntity(
             uId = uIdDraft,
+            image = image,
+            document = saveDocument,
             title = titleDraft,
             text = textDraft,
-            image = image,
         )
         viewModelScope.launch {
             notesRepository.upsertNote(note = noteDraft)

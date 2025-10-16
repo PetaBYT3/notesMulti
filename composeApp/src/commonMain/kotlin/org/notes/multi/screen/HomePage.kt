@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -44,6 +45,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.Navigator
 import cafe.adriel.voyager.navigator.currentOrThrow
@@ -62,14 +64,14 @@ import org.notes.multi.viewmodel.HomeViewModel
 
 @Composable
 fun HomeScreen(
+    navController: NavController,
     viewModel: HomeViewModel = koinViewModel(),
-    navigator: Navigator = LocalNavigator.currentOrThrow
 ) {
     val state by viewModel.state.collectAsState()
     val onAction = viewModel::onAction
 
     ScaffoldScreen(
-        navigator = navigator,
+        navController = navController,
         state = state,
         onAction = onAction
     )
@@ -78,13 +80,16 @@ fun HomeScreen(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ScaffoldScreen(
-    navigator: Navigator,
+    navController: NavController,
     state: HomeState,
     onAction: (HomeAction) -> Unit
 ) {
     val snackBarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     Scaffold(
+        modifier = Modifier
+            .fillMaxSize()
+            .imePadding(),
         topBar = {
             TopAppBar(
                 title = { Text(text = "Home") },
@@ -95,7 +100,7 @@ private fun ScaffoldScreen(
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 onClick = {
-                    navigator.push(Route.NoteRoute(uId = null))
+                    navController.navigate(Route.NoteRoute(uId = null))
                 },
                 text = { Text(text = "Create New Note") },
                 icon = {
@@ -111,7 +116,7 @@ private fun ScaffoldScreen(
     ) { innerPadding ->
         ContentScreen(
             modifier = Modifier.padding(innerPadding),
-            navigator = navigator,
+            navController = navController,
             state = state,
             onAction = onAction
         )
@@ -170,7 +175,7 @@ private fun ScaffoldScreen(
 @Composable
 private fun ContentScreen(
     modifier: Modifier = Modifier,
-    navigator: Navigator,
+    navController: NavController,
     state: HomeState,
     onAction: (HomeAction) -> Unit
 ) {
@@ -189,7 +194,7 @@ private fun ContentScreen(
                             .padding(5.dp)
                             .clip(RoundedCornerShape(20.dp)),
                         onClick = {
-                            navigator.push(Route.NoteRoute(uId = note.uId))
+                            navController.navigate(Route.NoteRoute(note.uId))
                         }
                     ) {
                         Column(

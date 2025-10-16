@@ -1,18 +1,24 @@
 package org.notes.multi.screen
 
-import androidx.compose.foundation.background
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.AttachFile
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Image
 import androidx.compose.material.icons.rounded.MoreVert
@@ -42,12 +48,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavController
 import cafe.adriel.voyager.core.annotation.InternalVoyagerApi
-import cafe.adriel.voyager.navigator.LocalNavigator
-import cafe.adriel.voyager.navigator.Navigator
-import cafe.adriel.voyager.navigator.currentOrThrow
 import cafe.adriel.voyager.navigator.internal.BackHandler
 import coil3.compose.AsyncImage
 import coil3.compose.LocalPlatformContext
@@ -58,8 +63,8 @@ import io.github.vinceglb.filekit.core.PickerType
 import kotlinx.coroutines.launch
 import org.koin.compose.viewmodel.koinViewModel
 import org.notes.multi.action.NoteAction
+import org.notes.multi.getDocument
 import org.notes.multi.getImage
-import org.notes.multi.localdata.database.NotesEntity
 import org.notes.multi.utilities.SimpleConfirmationBottomSheet
 import org.notes.multi.state.NoteState
 import org.notes.multi.utilities.CustomDropDownMenu
@@ -69,9 +74,9 @@ import org.notes.multi.viewmodel.NoteViewModel
 @OptIn(InternalVoyagerApi::class)
 @Composable
 fun NoteScreen(
+    navController: NavController,
     uId: Int?,
     viewModel: NoteViewModel = koinViewModel(),
-    navigator: Navigator = LocalNavigator.currentOrThrow,
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val onAction = viewModel::onAction
@@ -82,14 +87,14 @@ fun NoteScreen(
 
     BackHandler(enabled = true) {
         unSavedChangesHandler(
+            navController = navController,
             state = state,
             onAction = onAction,
-            navigator = navigator
         )
     }
 
     ScaffoldScreen(
-        navigator = navigator,
+        navController = navController,
         state = state,
         onAction = onAction,
     )
@@ -98,7 +103,7 @@ fun NoteScreen(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ScaffoldScreen(
-    navigator: Navigator,
+    navController: NavController,
     state: NoteState,
     onAction: (NoteAction) -> Unit,
 ) {
@@ -106,15 +111,18 @@ private fun ScaffoldScreen(
     val scope = rememberCoroutineScope()
 
     Scaffold(
+        modifier = Modifier
+            .fillMaxSize()
+            .imePadding(),
         topBar = {
             TopAppBar(
                 navigationIcon = {
                     IconButton(
                         onClick = {
                             unSavedChangesHandler(
+                                navController = navController,
                                 state = state,
                                 onAction = onAction,
-                                navigator = navigator
                             )
                         }
                     ) {
@@ -124,7 +132,18 @@ private fun ScaffoldScreen(
                         )
                     }
                 },
-                title = { Text(text = "Note") },
+                title = {
+                    Row {
+                        Text(text = "Note")
+                        Spacer(Modifier.width(10.dp))
+                        AnimatedVisibility(
+                            visible = state.titleDraft != state.title || state.textDraft != state.text,
+                            content = {
+                                Text(text = "Unsaved Changes")
+                            }
+                        )
+                    }
+                },
             )
         },
         floatingActionButton = {
@@ -132,7 +151,7 @@ private fun ScaffoldScreen(
                 onClick = {
                     if (state.titleDraft.isNotBlank()) {
                         onAction(NoteAction.InsertNote)
-                        navigator.pop()
+                        navController.popBackStack()
                     } else {
                         scope.launch {
                             snackBarHostState.showSnackbar(
@@ -142,7 +161,7 @@ private fun ScaffoldScreen(
                         }
                     }
                 },
-                text = { Text(text = "Save Note") },
+                text = { Text(text = "Save & Exit") },
                 icon = {
                     Icon(
                         imageVector = Icons.Rounded.Save,
@@ -155,7 +174,7 @@ private fun ScaffoldScreen(
     ) { innerPadding ->
         ContentScreen(
             modifier = Modifier.padding(innerPadding),
-            navigator = navigator,
+            navController = navController,
             snackBarHostState = snackBarHostState,
             state = state,
             onAction = onAction,
@@ -169,7 +188,7 @@ private fun ScaffoldScreen(
             onConfirmText = "Discard",
             onDismissText = "Keep",
             onConfirm = {
-                navigator.pop()
+                navController.popBackStack()
             },
             onDismiss = {
                 onAction(NoteAction.BottomSheetDiscard(false))
@@ -193,10 +212,11 @@ private fun ScaffoldScreen(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun ContentScreen(
     modifier: Modifier = Modifier,
-    navigator: Navigator,
+    navController: NavController,
     snackBarHostState: SnackbarHostState,
     state: NoteState,
     onAction: (NoteAction) -> Unit,
@@ -210,6 +230,21 @@ private fun ContentScreen(
                 if (file != null) {
                     val imageByte = file.readBytes().toList()
                     onAction(NoteAction.SaveImage(imageByte))
+                }
+            }
+        }
+    )
+    val documentPicker = rememberFilePickerLauncher(
+        onResult = { file ->
+            scope.launch {
+                if (file != null) {
+                    val documentByte = file.readBytes().toList()
+                    val documentExtension = file.name.substringAfterLast(".", "")
+
+                    onAction(NoteAction.SaveDocument(
+                        documentByte = documentByte,
+                        documentExtension = documentExtension
+                    ))
                 }
             }
         }
@@ -313,6 +348,72 @@ private fun ContentScreen(
             singleLine = false
         )
         HorizontalDivider(Modifier.padding(vertical = 10.dp))
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp)
+                .clip(RoundedCornerShape(20.dp)),
+            onClick = {
+                if (state.document.isNotBlank()) {
+                    getDocument(state.document)
+                } else {
+                    documentPicker.launch()
+                }
+            }
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+            ) {
+                if (state.document.isNotBlank()) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxSize(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Spacer(Modifier.width(10.dp))
+                        Icon(
+                            imageVector = Icons.Rounded.AttachFile,
+                            contentDescription = "File"
+                        )
+                        Spacer(Modifier.width(10.dp))
+                        Text(
+                            modifier = Modifier
+                                .weight(1f),
+                            text = state.document,
+                            style = MaterialTheme.typography.bodyMedium,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Spacer(Modifier.width(10.dp))
+                        IconButton(
+                            onClick = {
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.Delete,
+                                contentDescription = "Delete File"
+                            )
+                        }
+                    }
+                } else {
+                    Row(
+                        modifier = Modifier
+                            .align(Alignment.Center),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.Add,
+                            contentDescription = "File"
+                        )
+                        Spacer(Modifier.width(10.dp))
+                        Text(
+                            text = "Add File",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                }
+            }
+        }
         TextField(
             modifier = Modifier
                 .fillMaxWidth(),
@@ -332,13 +433,13 @@ private fun ContentScreen(
 }
 
 private fun unSavedChangesHandler(
+    navController: NavController,
     state: NoteState,
     onAction: (NoteAction) -> Unit,
-    navigator: Navigator,
 ) {
     if (state.title != state.titleDraft || state.text != state.textDraft) {
         onAction(NoteAction.BottomSheetDiscard(true))
     } else {
-        navigator.pop()
+        navController.popBackStack()
     }
 }

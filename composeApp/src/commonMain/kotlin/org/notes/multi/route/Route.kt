@@ -9,23 +9,11 @@ import org.notes.multi.screen.HomeScreen
 import org.notes.multi.screen.NoteScreen
 
 @Serializable
-sealed interface Route: Screen {
+sealed class Route {
 
     @Serializable
-    data object HomeRoute: Route {
-        @Composable
-        override fun Content() {
-            HomeScreen()
-        }
-    }
+    data object HomeRoute: Route()
 
     @Serializable
-    data class NoteRoute(
-        val uId : Int? = null
-    ) : Route {
-        @Composable
-        override fun Content() {
-            NoteScreen(uId = uId)
-        }
-    }
+    data class NoteRoute(val uId : Int? = null) : Route()
 }

@@ -5,6 +5,7 @@ import androidx.compose.runtime.Composable
 import androidx.room.Room
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import org.notes.multi.localdata.database.NotesDatabase
+import java.awt.Desktop
 import java.io.File
 import java.util.UUID
 
@@ -68,4 +69,24 @@ actual fun getImage(image: String): Any {
     val baseDir = File(System.getProperty("user.home"), "NotesMulti")
     val imageFile = File(baseDir, "images/$image")
     return imageFile
+}
+
+//Document File Extension
+actual fun saveDocument(documentByte: ByteArray, documentExtension: String): String {
+    val baseDir = File(System.getProperty("user.home"), "NotesMulti")
+    val documentName = "${UUID.randomUUID()}.${documentExtension}"
+    val targetDir = File(baseDir, "documents")
+
+    val saveDocument = File(targetDir, documentName)
+    saveDocument.writeBytes(documentByte)
+
+    return documentName
+}
+actual fun getDocument(documentName: String) {
+    val baseDir = File(System.getProperty("user.home"), "NotesMulti")
+    val targetDir = File(baseDir, "documents/$documentName")
+
+    if (Desktop.isDesktopSupported()) {
+        Desktop.getDesktop().open(File(targetDir.absolutePath))
+    }
 }
