@@ -7,8 +7,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.notes.multi.action.HomeAction
-import org.notes.multi.deleteImage
 import org.notes.multi.localdata.database.NotesEntity
+import org.notes.multi.localdata.database.NotesRelation
 import org.notes.multi.repository.NotesRepository
 import org.notes.multi.state.HomeState
 
@@ -25,9 +25,6 @@ class HomeViewModel(
 
     fun onAction(action: HomeAction) {
         when (action) {
-            is HomeAction.InsertNotes -> {
-                upsertNotes(note = action.newNotes)
-            }
             is HomeAction.ShowDeleteBottomSheet -> {
                 showDeleteBottomSheet(
                     showDeleteBottomSheet = action.showDeleteBottomSheet,
@@ -35,10 +32,7 @@ class HomeViewModel(
                 )
             }
             HomeAction.DeleteNote -> {
-                val noteToDelete = state.value.noteToDelete
-                if (noteToDelete != null) {
-                    deleteNote(noteToDelete = noteToDelete)
-                }
+                deleteNote()
             }
         }
     }
@@ -47,20 +41,13 @@ class HomeViewModel(
         viewModelScope.launch {
             notesRepository.getAllNotes().collect { allNotes ->
                 _state.update { it.copy(allNotes = allNotes) }
-
             }
-        }
-    }
-
-    private fun upsertNotes(note: NotesEntity) {
-        viewModelScope.launch {
-            notesRepository.upsertNote(note)
         }
     }
 
     private fun showDeleteBottomSheet(
         showDeleteBottomSheet: Boolean,
-        noteToDelete: NotesEntity?
+        noteToDelete: NotesRelation?
     ) {
         _state.update {
             it.copy(
@@ -70,10 +57,12 @@ class HomeViewModel(
         }
     }
 
-    private fun deleteNote(noteToDelete: NotesEntity) {
+    private fun deleteNote() {
         viewModelScope.launch {
-            notesRepository.deleteNote(noteToDelete)
+            val noteToDelete = state.value.noteToDelete
+            if (noteToDelete != null) {
+                notesRepository.deleteNote(noteToDelete.noteEntity)
+            }
         }
-        deleteImage(noteToDelete.image)
     }
 }

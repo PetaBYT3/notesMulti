@@ -4,16 +4,19 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.notes.multi.action.NoteAction
-import org.notes.multi.deleteImage
+import org.notes.multi.deleteFile
+import org.notes.multi.localdata.database.DocumentsEntity
+import org.notes.multi.localdata.database.ImageEntity
 import org.notes.multi.localdata.database.NotesEntity
 import org.notes.multi.repository.NotesRepository
-import org.notes.multi.saveDocument
-import org.notes.multi.saveImage
+import org.notes.multi.saveFile
 import org.notes.multi.state.NoteState
+import org.notes.multi.utilities.documentPath
+import org.notes.multi.utilities.imagePath
+import java.util.UUID
 
 class NoteViewModel(
     private val notesRepository: NotesRepository,
@@ -25,7 +28,7 @@ class NoteViewModel(
     fun onAction(action: NoteAction) {
         when (action) {
             is NoteAction.SelectedNotes -> {
-                putSelectedNotes(action.uId)
+                selectedNotes(action.uId)
             }
             is NoteAction.BottomSheetDiscard -> {
                 bottomSheetDiscard(action.isShown)
@@ -37,7 +40,7 @@ class NoteViewModel(
                 bottomSheetDeleteImage(action.isShown)
             }
             is NoteAction.SaveImage -> {
-                saveImage(action.imageBytes)
+                saveImage(action.imageBytes, action.imageExtension)
             }
             NoteAction.DeleteImage -> {
                 deleteImage()
@@ -45,11 +48,23 @@ class NoteViewModel(
             is NoteAction.TitleDraft -> {
                 titleDraft(action.titleDraft)
             }
+            is NoteAction.ExpandDocument -> {
+                expandDocument(action.isExpanded)
+            }
+            is NoteAction.BottomSheetDeleteDocument -> {
+                bottomSheetDeleteDocument(action.isShown, action.documentToDelete)
+            }
+            NoteAction.DeleteDocument -> {
+                deleteDocument()
+            }
             is NoteAction.SaveDocument -> {
-                documentDraft(action.documentByte, action.documentExtension)
+                saveDocument(action.documentByte, action.documentName)
             }
             is NoteAction.TextDraft -> {
                 textDraft(action.textDraft)
+            }
+            is NoteAction.ExpandFloatingActionButton -> {
+                expandFloatingActionButton(action.isExpanded)
             }
             NoteAction.InsertNote -> {
                 insertNote()
@@ -57,34 +72,30 @@ class NoteViewModel(
         }
     }
 
-    private fun putSelectedNotes(uId: Int?) {
+    private fun selectedNotes(uId: Long?) {
         viewModelScope.launch {
             if (uId != null) {
-                val noteByUid = notesRepository.getNoteByUid(uId).first()
-                _state.update {
-                    it.copy(
-                        uId = noteByUid.uId,
-                        imageName = noteByUid.image,
-                        title = noteByUid.title,
-                        document = noteByUid.document,
-                        text = noteByUid.text,
-                        uIdDraft = noteByUid.uId,
-                        titleDraft = noteByUid.title,
-                        textDraft = noteByUid.text,
-                    )
+                notesRepository.getNoteByUid(uId).collect { initialNote ->
+                    _state.update { it.copy(
+                        uId = initialNote.noteEntity.uId,
+                        image = initialNote.image,
+                        documents = initialNote.documentsList,
+                        initialTitle = initialNote.noteEntity.title,
+                        initialText = initialNote.noteEntity.text,
+                        draftTitle = initialNote.noteEntity.title,
+                        draftText = initialNote.noteEntity.text,
+                    ) }
                 }
             } else {
-                _state.update {
-                    it.copy(
-                        uId = 0,
-                        imageName = "",
-                        title = "",
-                        text = "",
-                        uIdDraft = 0,
-                        titleDraft = "",
-                        textDraft = "",
-                    )
-                }
+                _state.update { it.copy(
+                    uId = 0,
+                    image = null,
+                    documents = emptyList(),
+                    initialTitle = "",
+                    initialText = "",
+                    draftTitle = "",
+                    draftText = "",
+                ) }
             }
         }
     }
@@ -101,79 +112,110 @@ class NoteViewModel(
         _state.update { it.copy(bottomSheetDeleteImage = isShown) }
     }
 
-    private fun saveImage(imageByte: List<Byte>) {
-        val imageFile = saveImage(imageByte.toByteArray())
-        val noteDraft = NotesEntity(
-            uId = _state.value.uIdDraft,
-            image = imageFile.toString(),
-            document = _state.value.fileName,
-            title = _state.value.titleDraft,
-            text = _state.value.textDraft,
-        )
-        viewModelScope.launch {
-            notesRepository.upsertNote(note = noteDraft)
+    private fun saveImage(
+        imageByte: List<Byte>,
+        imageExtension: String
+    ) {
+        val uId = _state.value.uId
+        if (uId != 0L) {
+            val imageName = "${UUID.randomUUID()}.$imageExtension"
+            val imagePath = saveFile(
+                targetDir = imagePath,
+                fileByte = imageByte.toByteArray(),
+                fileName = imageName
+            )
+            val image = ImageEntity(
+                imageName = imageName,
+                imagePath = imagePath,
+                ownerUid = uId
+            )
+            viewModelScope.launch {
+                notesRepository.upsertImage(image)
+            }
         }
     }
 
     private fun deleteImage() {
-        val noteDraft = NotesEntity(
-            uId = _state.value.uIdDraft,
-            image = "",
-            document = _state.value.fileName,
-            title = _state.value.titleDraft,
-            text = _state.value.textDraft,
-        )
-        viewModelScope.launch {
-            notesRepository.upsertNote(note = noteDraft)
+        val imageToDelete = _state.value.image
+        if (imageToDelete != null) {
+            viewModelScope.launch {
+                notesRepository.deleteImage(imageToDelete)
+            }
+            deleteFile(imageToDelete.imagePath)
         }
-        deleteImage(_state.value.imageName)
     }
 
     private fun titleDraft(title: String) {
-        _state.update { it.copy(titleDraft = title) }
+        _state.update { it.copy(draftTitle = title) }
     }
 
-    private fun documentDraft(
+    private fun expandDocument(isExpanded: Boolean) {
+        _state.update { it.copy(expandDocuments = isExpanded) }
+    }
+
+    private fun bottomSheetDeleteDocument(isShown: Boolean, documentToDelete: DocumentsEntity?) {
+        _state.update { it.copy(
+            bottomSheetDeleteDocument = isShown,
+            documentToDelete = documentToDelete
+        ) }
+    }
+
+    private fun deleteDocument() {
+        val documentToDelete = _state.value.documentToDelete
+        if (documentToDelete != null) {
+            viewModelScope.launch {
+                notesRepository.deleteDocument(documentToDelete)
+            }
+            deleteFile(documentToDelete.documentPath)
+        }
+    }
+
+    private fun saveDocument(
         documentByte: List<Byte>,
-        documentExtension: String,
+        documentName: String,
     ) {
-        _state.update {
-            it.copy(
-                documentByteDraft = documentByte,
-                documentExtensionDraft = documentExtension,
+        val uId = _state.value.uId
+        if (uId != 0L) {
+            val documentPath = saveFile(
+                targetDir = "$documentPath/${_state.value.uId}",
+                fileByte = documentByte.toByteArray(),
+                fileName = documentName
             )
+            val document = DocumentsEntity(
+                uId = 0,
+                documentPath = documentPath,
+                documentName = documentName,
+                ownerUid = uId
+            )
+            viewModelScope.launch {
+                notesRepository.upsertDocument(document)
+            }
         }
     }
 
     private fun textDraft(text: String) {
-        _state.update { it.copy(textDraft = text) }
+        _state.update { it.copy(draftText = text) }
+    }
+
+    private fun expandFloatingActionButton(isExpanded: Boolean) {
+        _state.update { it.copy(expandFloatingActionButton = isExpanded) }
     }
 
     private fun insertNote() {
-        val uIdDraft = _state.value.uIdDraft
-        val image = _state.value.imageName
-        val file = _state.value.fileName
-        val titleDraft = _state.value.titleDraft
-        val textDraft = _state.value.textDraft
-        _state.update { it.copy(
-            uId = uIdDraft,
-            imageName = image,
-            fileName = file,
-            title = titleDraft,
-            text = textDraft,
-        ) }
-        val documentByte = _state.value.documentByteDraft.toByteArray()
-        val documentExtension = _state.value.documentExtensionDraft
-        val saveDocument = saveDocument(documentByte, documentExtension)
+        val text = _state.value.draftText
+        val title = _state.value.draftTitle
+
         val noteDraft = NotesEntity(
-            uId = uIdDraft,
-            image = image,
-            document = saveDocument,
-            title = titleDraft,
-            text = textDraft,
+            uId = _state.value.uId,
+            title = title,
+            text = text,
         )
+
         viewModelScope.launch {
-            notesRepository.upsertNote(note = noteDraft)
+            val savedNoteUid = notesRepository.upsertNote(note = noteDraft)
+            if (savedNoteUid != -1L) {
+                _state.update { it.copy(uId = savedNoteUid) }
+            }
         }
     }
 }

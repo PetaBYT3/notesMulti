@@ -1,23 +1,27 @@
 package org.notes.multi
 
 import androidx.compose.runtime.Composable
-import org.notes.multi.localdata.database.NotesDatabase
+import org.notes.multi.localdata.database.AppDatabase
 
 //AppTheme
 @Composable
 expect fun isSystemDarkTheme() : Boolean
 
 //Room Database
-expect fun getNotesDatabase(): NotesDatabase
+expect fun getNotesDatabase() : AppDatabase
 
 //Create Base Directory
 expect fun createBaseDirectory()
 
-//Image File Extension
-expect fun saveImage(image: ByteArray): String?
-expect fun deleteImage(image: String)
-expect fun getImage(image: String) : Any
+//File Operator
+expect fun saveFile(
+    targetDir: String,
+    fileByte: ByteArray,
+    fileName: String,
+): String
 
-//Document File Extension
-expect fun saveDocument(documentByte: ByteArray, documentExtension: String): String
-expect fun getDocument(documentName: String)
+expect fun getFile(targetDir: String): Any
+
+expect fun openFile(targetDir: String)
+
+expect fun deleteFile(targetDir: String)

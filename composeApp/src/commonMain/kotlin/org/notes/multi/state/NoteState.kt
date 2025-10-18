@@ -1,30 +1,40 @@
 package org.notes.multi.state
 
+import org.notes.multi.localdata.database.DocumentsEntity
+import org.notes.multi.localdata.database.ImageEntity
+
 data class NoteState(
 
-    //Image File Name
-    val imageName: String = "",
-    //Document File Name
-    val fileName: String = "",
+    //uid
+    val uId : Long = 0,
 
-    //Note Data
-    val uId: Int = 0,
-    val title : String = "",
-    val document : String = "",
-    val text : String = "",
+    //Image
+    val image : ImageEntity? = null,
+
+    //Document
+    val documents : List<DocumentsEntity> = emptyList(),
+    val documentToDelete : DocumentsEntity? = null,
+    val bottomSheetDeleteDocument : Boolean = false,
+
+    //Note Initial
+    val initialTitle : String = "",
+    val initialText : String = "",
 
     //Note Draft
-    val uIdDraft: Int = 0,
-    val titleDraft : String = "",
-    val documentByteDraft : List<Byte> = emptyList(),
-    val documentExtensionDraft : String = "",
-    val textDraft: String = "",
+    val draftTitle : String = "",
+    val draftText : String = "",
+
+    val expandFloatingActionButton: Boolean = false,
+
 
     //Discard BottomSheet
     val bottomSheetDiscard : Boolean = false,
 
     //Dropdown Image
     val dropDownImage : Boolean = false,
+
+    //Show All Documents
+    val expandDocuments : Boolean = false,
 
     //Delete Image Confirmation
     val bottomSheetDeleteImage : Boolean = false,

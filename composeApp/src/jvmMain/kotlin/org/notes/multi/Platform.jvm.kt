@@ -2,9 +2,16 @@ package org.notes.multi
 
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.room.Room
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
-import org.notes.multi.localdata.database.NotesDatabase
+import org.notes.multi.localdata.database.AppDatabase
+import org.notes.multi.utilities.documentPath
+import org.notes.multi.utilities.imagePath
+import org.notes.multi.utilities.normalizePath
+import org.notes.multi.utilities.videoPath
 import java.awt.Desktop
 import java.io.File
 import java.util.UUID
@@ -16,10 +23,10 @@ actual fun isSystemDarkTheme(): Boolean {
 }
 
 //Room Database
-actual fun getNotesDatabase(): NotesDatabase {
+actual fun getNotesDatabase(): AppDatabase {
     val baseDir = File(System.getProperty("user.home"), "NotesMulti")
     val dbFile = File(baseDir, "database/notes.db")
-    return Room.databaseBuilder<NotesDatabase>(
+    return Room.databaseBuilder<AppDatabase>(
         name = dbFile.absolutePath,
     )
         .setDriver(BundledSQLiteDriver())
@@ -31,10 +38,10 @@ actual fun getNotesDatabase(): NotesDatabase {
 actual fun createBaseDirectory() {
     val baseDir = File(System.getProperty("user.home"), "NotesMulti")
     val listDir = listOf(
-        "images",
-        "videos",
-        "documents",
-        "database"
+        imagePath,
+        videoPath,
+        documentPath,
+        "database",
     )
 
     for (dirName in listDir) {
@@ -45,48 +52,41 @@ actual fun createBaseDirectory() {
     }
 }
 
-actual fun saveImage(image: ByteArray): String? {
-    val baseDir = File(System.getProperty("user.home"), "NotesMulti")
-    val fileName = "${UUID.randomUUID()}.jpg"
-    val file = File(baseDir, "images")
+actual fun saveFile(
+    targetDir: String,
+    fileByte: ByteArray,
+    fileName: String,
+): String {
+    val rootDir = File(System.getProperty("user.home"), "NotesMulti")
+    val baseDir = File(rootDir, targetDir)
 
-    val saveImage = File(file, fileName)
-    saveImage.writeBytes(image)
+    if (!baseDir.exists()) {
+        baseDir.mkdirs()
+    }
 
-    return fileName
+    val saveFile = File(baseDir, fileName)
+    saveFile.writeBytes(fileByte)
+
+    return normalizePath(saveFile.absolutePath)
 }
 
-actual fun deleteImage(image: String) {
-    val baseDir = File(System.getProperty("user.home"), "NotesMulti")
-    val imageFile = File(baseDir, "images/$image")
+actual fun getFile(
+    targetDir: String,
+): Any {
+    val file = File(targetDir)
+    return file
+}
 
-    if (imageFile.exists()) {
-        imageFile.delete()
+actual fun openFile(targetDir: String) {
+    if (Desktop.isDesktopSupported()) {
+        Desktop.getDesktop().open(File(targetDir))
     }
 }
 
-actual fun getImage(image: String): Any {
-    val baseDir = File(System.getProperty("user.home"), "NotesMulti")
-    val imageFile = File(baseDir, "images/$image")
-    return imageFile
-}
+actual fun deleteFile(targetDir: String) {
+    val fileToDelete = File(targetDir)
 
-//Document File Extension
-actual fun saveDocument(documentByte: ByteArray, documentExtension: String): String {
-    val baseDir = File(System.getProperty("user.home"), "NotesMulti")
-    val documentName = "${UUID.randomUUID()}.${documentExtension}"
-    val targetDir = File(baseDir, "documents")
-
-    val saveDocument = File(targetDir, documentName)
-    saveDocument.writeBytes(documentByte)
-
-    return documentName
-}
-actual fun getDocument(documentName: String) {
-    val baseDir = File(System.getProperty("user.home"), "NotesMulti")
-    val targetDir = File(baseDir, "documents/$documentName")
-
-    if (Desktop.isDesktopSupported()) {
-        Desktop.getDesktop().open(File(targetDir.absolutePath))
+    if (fileToDelete.exists()) {
+        fileToDelete.delete()
     }
 }

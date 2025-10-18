@@ -1,7 +1,15 @@
 package org.notes.multi.screen
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -18,20 +26,26 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.ArrowDownward
+import androidx.compose.material.icons.rounded.ArrowUpward
 import androidx.compose.material.icons.rounded.AttachFile
 import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.ExitToApp
+import androidx.compose.material.icons.rounded.FilePresent
 import androidx.compose.material.icons.rounded.Image
 import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.Save
 import androidx.compose.material.icons.rounded.Upload
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
@@ -46,6 +60,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
@@ -63,19 +78,19 @@ import io.github.vinceglb.filekit.core.PickerType
 import kotlinx.coroutines.launch
 import org.koin.compose.viewmodel.koinViewModel
 import org.notes.multi.action.NoteAction
-import org.notes.multi.getDocument
-import org.notes.multi.getImage
-import org.notes.multi.utilities.SimpleConfirmationBottomSheet
+import org.notes.multi.getFile
+import org.notes.multi.openFile
 import org.notes.multi.state.NoteState
 import org.notes.multi.utilities.CustomDropDownMenu
-import org.notes.multi.utilities.MenuList
+import org.notes.multi.utilities.DropDownList
+import org.notes.multi.utilities.SimpleConfirmationBottomSheet
 import org.notes.multi.viewmodel.NoteViewModel
 
 @OptIn(InternalVoyagerApi::class)
 @Composable
 fun NoteScreen(
     navController: NavController,
-    uId: Int?,
+    uId: Long?,
     viewModel: NoteViewModel = koinViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -137,7 +152,7 @@ private fun ScaffoldScreen(
                         Text(text = "Note")
                         Spacer(Modifier.width(10.dp))
                         AnimatedVisibility(
-                            visible = state.titleDraft != state.title || state.textDraft != state.text,
+                            visible = state.initialTitle != state.draftTitle || state.initialText != state.draftText,
                             content = {
                                 Text(text = "Unsaved Changes")
                             }
@@ -147,27 +162,11 @@ private fun ScaffoldScreen(
             )
         },
         floatingActionButton = {
-            ExtendedFloatingActionButton(
-                onClick = {
-                    if (state.titleDraft.isNotBlank()) {
-                        onAction(NoteAction.InsertNote)
-                        navController.popBackStack()
-                    } else {
-                        scope.launch {
-                            snackBarHostState.showSnackbar(
-                                message = "Title cannot be empty !",
-                                withDismissAction = true
-                            )
-                        }
-                    }
-                },
-                text = { Text(text = "Save & Exit") },
-                icon = {
-                    Icon(
-                        imageVector = Icons.Rounded.Save,
-                        contentDescription = "Save Note"
-                    )
-                }
+            ExpandedFloatingActionButton(
+                navController = navController,
+                snackBarHostState = snackBarHostState,
+                state = state,
+                onAction = onAction
             )
         },
         snackbarHost = { SnackbarHost(snackBarHostState) }
@@ -210,6 +209,21 @@ private fun ScaffoldScreen(
             }
         )
     }
+
+    if (state.bottomSheetDeleteDocument) {
+        SimpleConfirmationBottomSheet(
+            title = "Delete Document",
+            text = """Are you sure you want to delete "${state.documentToDelete?.documentName}" ?""",
+            onConfirmText = "Delete",
+            onDismissText = "Cancel",
+            onConfirm = {
+                onAction(NoteAction.DeleteDocument)
+            },
+            onDismiss = {
+                onAction(NoteAction.BottomSheetDeleteDocument(false, null))
+            }
+        )
+    }
 }
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -229,7 +243,12 @@ private fun ContentScreen(
             scope.launch {
                 if (file != null) {
                     val imageByte = file.readBytes().toList()
-                    onAction(NoteAction.SaveImage(imageByte))
+                    val imageExtension = file.name.substringAfterLast(".")
+
+                    onAction(NoteAction.SaveImage(
+                        imageBytes = imageByte,
+                        imageExtension = imageExtension
+                    ))
                 }
             }
         }
@@ -239,11 +258,11 @@ private fun ContentScreen(
             scope.launch {
                 if (file != null) {
                     val documentByte = file.readBytes().toList()
-                    val documentExtension = file.name.substringAfterLast(".", "")
+                    val documentName = file.name
 
                     onAction(NoteAction.SaveDocument(
                         documentByte = documentByte,
-                        documentExtension = documentExtension
+                        documentName = documentName,
                     ))
                 }
             }
@@ -265,13 +284,13 @@ private fun ContentScreen(
                 modifier = Modifier
                     .fillMaxSize()
             ) {
-                if (state.imageName.isNotBlank()) {
+                if (state.image != null) {
                     AsyncImage(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(200.dp),
                         model = ImageRequest.Builder(LocalPlatformContext.current)
-                            .data(getImage(state.imageName))
+                            .data(getFile(state.image.imagePath))
                             .crossfade(true)
                             .build(),
                         contentScale = ContentScale.Crop,
@@ -300,17 +319,28 @@ private fun ContentScreen(
                             contentDescription = "More",
                         )
                     }
-                    val menuList = listOf(
-                        MenuList(
+                    val dropDownLists = listOf(
+                        DropDownList(
                             title = "Upload Image",
                             icon = Icons.Rounded.Upload,
-                            onClick = { imagePicker.launch() }
+                            onClick = {
+                                if (state.uId != 0L) {
+                                    imagePicker.launch()
+                                } else {
+                                    scope.launch {
+                                        snackBarHostState.showSnackbar(
+                                            message = "Save at least once !",
+                                            withDismissAction = true
+                                        )
+                                    }
+                                }
+                            }
                         ),
-                        MenuList(
+                        DropDownList(
                             title = "Delete Image",
                             icon = Icons.Rounded.Delete,
                             onClick = {
-                                if (state.imageName.isNotBlank()) {
+                                if (state.image != null) {
                                     onAction(NoteAction.BottomSheetDeleteImage(true))
                                 } else {
                                     scope.launch {
@@ -324,7 +354,7 @@ private fun ContentScreen(
                         ),
                     )
                     CustomDropDownMenu(
-                        menuList = menuList,
+                        dropDownList = dropDownLists,
                         isExpanded = state.dropDownImage,
                         onDismiss = { onAction(NoteAction.DropDownImage(false)) }
                     )
@@ -332,10 +362,122 @@ private fun ContentScreen(
             }
         }
         Spacer(Modifier.height(10.dp))
+        Card(
+            modifier = Modifier
+                .clip(RoundedCornerShape(20.dp))
+        ) {
+            Column(
+                modifier = Modifier
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Spacer(Modifier.width(10.dp))
+                    Icon(
+                        imageVector = Icons.Rounded.AttachFile,
+                        contentDescription = null
+                    )
+                    Spacer(Modifier.width(10.dp))
+                    Text(text = "${state.documents.size} Document Saved")
+                    Spacer(Modifier.weight(1f))
+                    IconButton(
+                        onClick = {
+                            if (state.expandDocuments) {
+                                onAction(NoteAction.ExpandDocument(false))
+                            } else {
+                                onAction(NoteAction.ExpandDocument(true))
+                            }
+                        }
+                    ) {
+                        val animatedRotation by animateFloatAsState(
+                            targetValue = if (state.expandDocuments) 180f else 0f,
+                            animationSpec = tween(500)
+                        )
+
+                        Icon(
+                            modifier = Modifier
+                                .rotate(animatedRotation),
+                            imageVector = Icons.Rounded.ArrowDownward,
+                            contentDescription = "More",
+                        )
+                    }
+                }
+                AnimatedVisibility(
+                    visible = state.expandDocuments,
+                    content = {
+                        Column {
+                            state.documents.forEach { document ->
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .clickable(
+                                            enabled = true,
+                                            onClick = {
+                                                openFile(document.documentPath)
+                                            }
+                                        ),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Spacer(Modifier.width(10.dp))
+                                    Icon(
+                                        imageVector = Icons.Rounded.FilePresent,
+                                        contentDescription = null
+                                    )
+                                    Spacer(Modifier.width(10.dp))
+                                    Text(
+                                        modifier = Modifier
+                                            .weight(1f),
+                                        text = document.documentName,
+                                        overflow = TextOverflow.Ellipsis,
+                                        maxLines = 1
+                                    )
+                                    Spacer(Modifier.width(10.dp))
+                                    IconButton(
+                                        onClick = {
+                                            onAction(NoteAction.BottomSheetDeleteDocument(true, document))
+                                        }
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Rounded.Delete,
+                                            contentDescription = null
+                                        )
+                                    }
+                                }
+                            }
+                            Button(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(10.dp),
+                                onClick = {
+                                    if (state.uId != 0L) {
+                                        documentPicker.launch()
+                                    } else {
+                                        scope.launch {
+                                            snackBarHostState.showSnackbar(
+                                                message = "Save at least once !",
+                                                withDismissAction = true
+                                            )
+                                        }
+                                    }
+                                }
+                            ) {
+                                Text(text = "Add Document")
+                                Spacer(Modifier.width(10.dp))
+                                Icon(
+                                    imageVector = Icons.Rounded.Add,
+                                    contentDescription = null
+                                )
+                            }
+                        }
+                    }
+                )
+            }
+        }
+        Spacer(Modifier.height(10.dp))
         TextField(
             modifier = Modifier
                 .fillMaxWidth(),
-            value = state.titleDraft,
+            value = state.draftTitle,
             onValueChange = { onAction(NoteAction.TitleDraft(it)) },
             placeholder = { Text(text = "Title") },
             colors = TextFieldDefaults.colors(
@@ -348,76 +490,10 @@ private fun ContentScreen(
             singleLine = false
         )
         HorizontalDivider(Modifier.padding(vertical = 10.dp))
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(50.dp)
-                .clip(RoundedCornerShape(20.dp)),
-            onClick = {
-                if (state.document.isNotBlank()) {
-                    getDocument(state.document)
-                } else {
-                    documentPicker.launch()
-                }
-            }
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-            ) {
-                if (state.document.isNotBlank()) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxSize(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Spacer(Modifier.width(10.dp))
-                        Icon(
-                            imageVector = Icons.Rounded.AttachFile,
-                            contentDescription = "File"
-                        )
-                        Spacer(Modifier.width(10.dp))
-                        Text(
-                            modifier = Modifier
-                                .weight(1f),
-                            text = state.document,
-                            style = MaterialTheme.typography.bodyMedium,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        Spacer(Modifier.width(10.dp))
-                        IconButton(
-                            onClick = {
-                            }
-                        ) {
-                            Icon(
-                                imageVector = Icons.Rounded.Delete,
-                                contentDescription = "Delete File"
-                            )
-                        }
-                    }
-                } else {
-                    Row(
-                        modifier = Modifier
-                            .align(Alignment.Center),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Rounded.Add,
-                            contentDescription = "File"
-                        )
-                        Spacer(Modifier.width(10.dp))
-                        Text(
-                            text = "Add File",
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                    }
-                }
-            }
-        }
         TextField(
             modifier = Modifier
                 .fillMaxWidth(),
-            value = state.textDraft,
+            value = state.draftText,
             onValueChange = { onAction(NoteAction.TextDraft(it)) },
             placeholder = { Text(text = "Write something here...") },
             colors = TextFieldDefaults.colors(
@@ -432,12 +508,121 @@ private fun ContentScreen(
     }
 }
 
+@Composable
+private fun ExpandedFloatingActionButton(
+    navController: NavController,
+    snackBarHostState: SnackbarHostState,
+    state: NoteState,
+    onAction: (NoteAction) -> Unit
+) {
+    val scope = rememberCoroutineScope()
+    Column(
+        horizontalAlignment = Alignment.End
+    ) {
+        AnimatedVisibility(
+            visible = state.expandFloatingActionButton,
+            enter = fadeIn() + slideInVertically(initialOffsetY = {it}),
+            exit = fadeOut() + slideOutVertically(targetOffsetY = {it}),
+            content = {
+                Column(
+                    horizontalAlignment = Alignment.End,
+                ) {
+                    SmallFloatingActionButton(
+                        onClick = {
+                            if (state.draftTitle.isNotBlank()) {
+                                onAction(NoteAction.InsertNote)
+                                scope.launch {
+                                    snackBarHostState.showSnackbar(
+                                        message = "Note Saved !",
+                                        withDismissAction = true
+                                    )
+                                }
+                            } else {
+                                scope.launch {
+                                    snackBarHostState.showSnackbar(
+                                        message = "Title can't be empty !",
+                                        withDismissAction = true
+                                    )
+                                }
+                            }
+                        },
+                        content = {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Spacer(Modifier.width(10.dp))
+                                Icon(
+                                    imageVector = Icons.Rounded.Save,
+                                    contentDescription = "Save"
+                                )
+                                Spacer(Modifier.width(5.dp))
+                                Text(text = "Save")
+                                Spacer(Modifier.width(10.dp))
+                            }
+                        }
+                    )
+                    SmallFloatingActionButton(
+                        onClick = {
+                            if (state.draftTitle.isNotBlank()) {
+                                onAction(NoteAction.InsertNote)
+                                navController.popBackStack()
+                            } else {
+                                scope.launch {
+                                    snackBarHostState.showSnackbar(
+                                        message = "Title can't be empty !",
+                                        withDismissAction = true
+                                    )
+                                }
+                            }
+                        },
+                        content = {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Spacer(Modifier.width(10.dp))
+                                Icon(
+                                    imageVector = Icons.Rounded.ExitToApp,
+                                    contentDescription = "Save"
+                                )
+                                Spacer(Modifier.width(5.dp))
+                                Text(text = "Save & Exit")
+                                Spacer(Modifier.width(10.dp))
+                            }
+                        }
+                    )
+                    Spacer(Modifier.height(5.dp))
+                }
+            }
+        )
+        FloatingActionButton(
+            onClick = {
+                if (state.expandFloatingActionButton) {
+                    onAction(NoteAction.ExpandFloatingActionButton(false))
+                } else {
+                    onAction(NoteAction.ExpandFloatingActionButton(true))
+                }
+            }
+        ) {
+            val animatedRotation by animateFloatAsState(
+                targetValue = if (state.expandFloatingActionButton) 180f else 0f,
+                animationSpec = tween(500)
+            )
+            Icon(
+                modifier = Modifier
+                    .rotate(animatedRotation),
+                imageVector = Icons.Rounded.ArrowUpward,
+                contentDescription = "Add"
+            )
+        }
+    }
+}
+
 private fun unSavedChangesHandler(
     navController: NavController,
     state: NoteState,
     onAction: (NoteAction) -> Unit,
 ) {
-    if (state.title != state.titleDraft || state.text != state.textDraft) {
+    if (state.initialTitle != state.draftTitle || state.initialText != state.draftText) {
         onAction(NoteAction.BottomSheetDiscard(true))
     } else {
         navController.popBackStack()

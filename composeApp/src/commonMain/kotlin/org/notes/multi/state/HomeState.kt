@@ -1,11 +1,12 @@
 package org.notes.multi.state
 
 import org.notes.multi.localdata.database.NotesEntity
+import org.notes.multi.localdata.database.NotesRelation
 
 data class HomeState(
-    val allNotes: List<NotesEntity> = emptyList(),
+    val allNotes: List<NotesRelation> = emptyList(),
 
     //Delete BottomSheet
     val showDeleteBottomSheet : Boolean = false,
-    val noteToDelete : NotesEntity? = null,
+    val noteToDelete : NotesRelation? = null,
 )
