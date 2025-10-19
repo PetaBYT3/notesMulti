@@ -18,6 +18,12 @@ data class NotesRelation (
         parentColumn = "uId",
         entityColumn = "ownerUid"
     )
+    val audioList: List<AudioEntity>,
+
+    @Relation(
+        parentColumn = "uId",
+        entityColumn = "ownerUid"
+    )
     val image: ImageEntity?
 
 )

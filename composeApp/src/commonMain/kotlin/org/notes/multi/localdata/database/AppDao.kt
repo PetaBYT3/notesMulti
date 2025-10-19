@@ -35,4 +35,10 @@ interface AppDao {
 
     @Delete
     suspend fun deleteDocument(document: DocumentsEntity)
+
+    @Upsert
+    suspend fun upsertAudio(audio: AudioEntity)
+
+    @Delete
+    suspend fun deleteAudio(audio: AudioEntity)
 }

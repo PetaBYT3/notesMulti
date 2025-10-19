@@ -40,4 +40,6 @@ sealed interface NoteAction {
     data object DeleteDocument : NoteAction
 
     data class ExpandFloatingActionButton(val isExpanded: Boolean) : NoteAction
+    data class ExpandAudio(val isExpanded: Boolean) : NoteAction
+    data object IsAudioRecording : NoteAction
 }

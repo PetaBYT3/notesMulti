@@ -73,6 +73,9 @@ kotlin {
             //File Picker
             api(libs.filekit.compose)
             api(libs.filekit.core)
+
+            //Time
+            api(libs.kotlinx.datetime)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

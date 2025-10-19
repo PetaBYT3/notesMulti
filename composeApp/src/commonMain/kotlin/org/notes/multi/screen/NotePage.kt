@@ -8,12 +8,14 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -29,12 +31,16 @@ import androidx.compose.material.icons.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.ArrowDownward
 import androidx.compose.material.icons.rounded.ArrowUpward
 import androidx.compose.material.icons.rounded.AttachFile
+import androidx.compose.material.icons.rounded.AudioFile
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.ExitToApp
 import androidx.compose.material.icons.rounded.FilePresent
 import androidx.compose.material.icons.rounded.Image
+import androidx.compose.material.icons.rounded.Mic
 import androidx.compose.material.icons.rounded.MoreVert
+import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Save
+import androidx.compose.material.icons.rounded.Stop
 import androidx.compose.material.icons.rounded.Upload
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -44,6 +50,7 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.material3.SnackbarHost
@@ -362,12 +369,14 @@ private fun ContentScreen(
             }
         }
         Spacer(Modifier.height(10.dp))
+        //Document List
         Card(
             modifier = Modifier
                 .clip(RoundedCornerShape(20.dp))
         ) {
             Column(
                 modifier = Modifier
+                    .fillMaxWidth()
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically
@@ -467,6 +476,118 @@ private fun ContentScreen(
                                     imageVector = Icons.Rounded.Add,
                                     contentDescription = null
                                 )
+                            }
+                        }
+                    }
+                )
+            }
+        }
+        Spacer(Modifier.height(10.dp))
+        //Audio List
+        Card(
+            modifier = Modifier
+                .clip(RoundedCornerShape(20.dp))
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Spacer(Modifier.width(10.dp))
+                    Icon(
+                        imageVector = Icons.Rounded.Mic,
+                        contentDescription = null
+                    )
+                    Spacer(Modifier.width(10.dp))
+                    Text(text = "${state.audio.size} Audio Recorded")
+                    Spacer(Modifier.weight(1f))
+                    IconButton(
+                        onClick = {
+                            if (state.expandAudio) {
+                                onAction(NoteAction.ExpandAudio(false))
+                            } else {
+                                onAction(NoteAction.ExpandAudio(true))
+                            }
+                        }
+                    ) {
+                        val animatedRotation by animateFloatAsState(
+                            targetValue = if (state.expandAudio) 180f else 0f,
+                            animationSpec = tween(500)
+                        )
+                        Icon(
+                            modifier = Modifier
+                                .rotate(animatedRotation),
+                            imageVector = Icons.Rounded.ArrowDownward,
+                            contentDescription = "More",
+                        )
+                    }
+                }
+                AnimatedVisibility(
+                    visible = state.expandAudio,
+                    content = {
+                        Column {
+                            state.audio.forEach { audio ->
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .clickable(
+                                            enabled = true,
+                                            onClick = {
+                                                openFile(audio.audioPath)
+                                            }
+                                        ),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Spacer(Modifier.width(10.dp))
+                                    Icon(
+                                        imageVector = Icons.Rounded.AudioFile,
+                                        contentDescription = null
+                                    )
+                                    Spacer(Modifier.width(10.dp))
+                                    Text(
+                                        modifier = Modifier
+                                            .weight(1f),
+                                        text = audio.audioName,
+                                        overflow = TextOverflow.Ellipsis,
+                                        maxLines = 1
+                                    )
+                                    Spacer(Modifier.width(10.dp))
+                                    IconButton(
+                                        onClick = {
+                                        }
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Rounded.Delete,
+                                            contentDescription = null
+                                        )
+                                    }
+                                }
+                            }
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(10.dp)
+                                    .clip(RoundedCornerShape(25))
+                                    .background(MaterialTheme.colorScheme.primary),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Spacer(Modifier.width(20.dp))
+                                Text(text = "${state.audioCountUp}s")
+                                Spacer(Modifier.weight(1f))
+                                IconButton(
+                                    onClick = {
+                                        onAction(NoteAction.IsAudioRecording)
+                                    }
+                                ) {
+                                    Icon(
+                                        imageVector = if (state.isRecording) Icons.Rounded.Stop else Icons.Rounded.PlayArrow,
+                                        tint = if (state.isRecording) Color.Red else Color.White,
+                                        contentDescription = null
+                                    )
+                                }
+                                Spacer(Modifier.width(10.dp))
                             }
                         }
                     }

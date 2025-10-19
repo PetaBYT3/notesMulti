@@ -1,6 +1,7 @@
 package org.notes.multi
 
 import androidx.compose.runtime.Composable
+import org.koin.core.module.Module
 import org.notes.multi.localdata.database.AppDatabase
 
 //AppTheme
@@ -25,3 +26,11 @@ expect fun getFile(targetDir: String): Any
 expect fun openFile(targetDir: String)
 
 expect fun deleteFile(targetDir: String)
+
+@Suppress("EXPECT_ACTUAL_CLASSIFIERS_ARE_IN_BETA_WARNING")
+expect class AudioRecorder {
+    fun startRecording()
+    fun stopRecording() : ByteArray?
+}
+
+expect val platformModule: Module

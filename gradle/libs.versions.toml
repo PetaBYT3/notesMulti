@@ -25,6 +25,7 @@ kotlin-serialization = "1.9.0"
 coil = "3.3.0"
 filekit = "0.8.8"
 kotlin-parcelize = "1.9.21"
+kotlinx-datetime = "0.6.0"
 
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
@@ -69,6 +70,8 @@ filekit-compose = { module = "io.github.vinceglb:filekit-compose", version.ref =
 filekit-core = { module = "io.github.vinceglb:filekit-core", version.ref = "filekit" }
 filekit-coil = { module = "io.github.vinceglb:filekit-coil", version.ref = "filekit" }
 
+#Time
+kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "kotlinx-datetime" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }

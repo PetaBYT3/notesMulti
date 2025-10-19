@@ -2,6 +2,7 @@ package org.notes.multi.repository
 
 import kotlinx.coroutines.flow.Flow
 import org.notes.multi.localdata.database.AppDao
+import org.notes.multi.localdata.database.AudioEntity
 import org.notes.multi.localdata.database.DocumentsEntity
 import org.notes.multi.localdata.database.ImageEntity
 import org.notes.multi.localdata.database.NotesEntity
@@ -42,4 +43,13 @@ class NotesRepository(
     suspend fun deleteDocument(document: DocumentsEntity) {
         appDao.deleteDocument(document)
     }
+
+    suspend fun upsertAudio(audio: AudioEntity) {
+        appDao.upsertAudio(audio)
+    }
+
+    suspend fun deleteAudio(audio: AudioEntity) {
+        appDao.deleteAudio(audio)
+    }
+
 }

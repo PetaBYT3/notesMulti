@@ -7,14 +7,34 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.room.Room
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
+import okhttp3.Dispatcher
+import org.koin.core.module.Module
+import org.koin.core.module.dsl.singleOf
+import org.koin.dsl.module
 import org.notes.multi.localdata.database.AppDatabase
+import org.notes.multi.utilities.audioPath
 import org.notes.multi.utilities.documentPath
 import org.notes.multi.utilities.imagePath
 import org.notes.multi.utilities.normalizePath
+import org.notes.multi.utilities.temp
 import org.notes.multi.utilities.videoPath
 import java.awt.Desktop
+import java.io.ByteArrayOutputStream
 import java.io.File
 import java.util.UUID
+import javax.sound.sampled.AudioFormat
+import javax.sound.sampled.AudioSystem
+import javax.sound.sampled.DataLine
+import javax.sound.sampled.TargetDataLine
+
+actual val platformModule: Module = module {
+    singleOf(::AudioRecorder)
+}
 
 //App Theme
 @Composable
@@ -41,6 +61,8 @@ actual fun createBaseDirectory() {
         imagePath,
         videoPath,
         documentPath,
+        audioPath,
+        temp,
         "database",
     )
 
@@ -88,5 +110,47 @@ actual fun deleteFile(targetDir: String) {
 
     if (fileToDelete.exists()) {
         fileToDelete.delete()
+    }
+}
+
+@Suppress("EXPECT_ACTUAL_CLASSIFIERS_ARE_IN_BETA_WARNING")
+actual class AudioRecorder {
+    private var line: TargetDataLine? = null
+    private var recordingJob: Job? = null
+    private val audioBuffer = ByteArrayOutputStream()
+
+    actual fun startRecording() {
+        recordingJob = CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val audioFormat = AudioFormat(44100f, 16, 1, true, false)
+                val info = DataLine.Info(TargetDataLine::class.java, audioFormat)
+
+                line = (AudioSystem.getLine(info)) as TargetDataLine
+                line?.open(audioFormat)
+                line?.start()
+
+                val buffer = ByteArray(line!!.bufferSize / 5)
+                while (isActive) {
+                    val bytesRead = line!!.read(buffer, 0, buffer.size)
+                    audioBuffer.write(buffer, 0, bytesRead)
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            } finally {
+                line?.stop()
+                line?.close()
+            }
+        }
+    }
+
+    actual fun stopRecording() : ByteArray? {
+        recordingJob?.cancel()
+        line = null
+        recordingJob = null
+
+        val audioFile = audioBuffer.toByteArray()
+        audioBuffer.reset()
+
+        return audioFile
     }
 }

@@ -2,19 +2,30 @@ package org.notes.multi
 
 import android.content.Context
 import android.content.Intent
+import android.media.MediaRecorder
+import android.os.Build
 import android.webkit.MimeTypeMap
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
 import androidx.core.content.FileProvider
 import androidx.room.Room
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
+import org.koin.core.module.Module
+import org.koin.core.module.dsl.singleOf
+import org.koin.dsl.module
 import org.notes.multi.localdata.database.AppDatabase
+import org.notes.multi.utilities.audioPath
 import org.notes.multi.utilities.documentPath
 import org.notes.multi.utilities.imagePath
 import org.notes.multi.utilities.normalizePath
+import org.notes.multi.utilities.temp
 import org.notes.multi.utilities.videoPath
 import java.io.File
 import java.util.UUID
+
+actual val platformModule: Module = module {
+    singleOf(::AudioRecorder)
+}
 
 @Composable
 actual fun isSystemDarkTheme(): Boolean {
@@ -45,6 +56,8 @@ actual fun createBaseDirectory() {
         imagePath,
         videoPath,
         documentPath,
+        audioPath,
+        temp
     )
 
     if (baseDir != null) {
@@ -104,5 +117,40 @@ actual fun deleteFile(
 
     if (fileToDelete.exists()) {
         fileToDelete.delete()
+    }
+}
+
+@Suppress("EXPECT_ACTUAL_CLASSIFIERS_ARE_IN_BETA_WARNING")
+actual class AudioRecorder {
+    private var recorder: MediaRecorder? = null
+    private var tempFile: File? = null
+
+    actual fun startRecording() {
+        tempFile = File.createTempFile("audio_record", "m4a", applicationContext.cacheDir)
+        recorder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            MediaRecorder(applicationContext)
+        } else {
+            MediaRecorder()
+        }.apply {
+            setAudioSource(MediaRecorder.AudioSource.MIC)
+            setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
+            setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
+            setOutputFile(tempFile?.absolutePath)
+
+            prepare()
+            start()
+        }
+    }
+
+    actual fun stopRecording() : ByteArray? {
+        recorder?.stop()
+        val audioFile = tempFile?.takeIf { it.exists() }?.readBytes()
+        recorder?.release()
+        recorder = null
+
+        tempFile?.delete()
+        tempFile = null
+
+        return audioFile
     }
 }

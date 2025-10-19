@@ -2,24 +2,31 @@ package org.notes.multi.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import org.notes.multi.AudioRecorder
 import org.notes.multi.action.NoteAction
 import org.notes.multi.deleteFile
+import org.notes.multi.localdata.database.AudioEntity
 import org.notes.multi.localdata.database.DocumentsEntity
 import org.notes.multi.localdata.database.ImageEntity
 import org.notes.multi.localdata.database.NotesEntity
 import org.notes.multi.repository.NotesRepository
+import org.notes.multi.repository.TimeRepository
 import org.notes.multi.saveFile
 import org.notes.multi.state.NoteState
+import org.notes.multi.utilities.audioPath
 import org.notes.multi.utilities.documentPath
 import org.notes.multi.utilities.imagePath
 import java.util.UUID
 
 class NoteViewModel(
     private val notesRepository: NotesRepository,
+    private val audioRecorder: AudioRecorder,
+    private val timeRepository: TimeRepository
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(NoteState())
@@ -60,6 +67,12 @@ class NoteViewModel(
             is NoteAction.SaveDocument -> {
                 saveDocument(action.documentByte, action.documentName)
             }
+            is NoteAction.ExpandAudio -> {
+                expandAudio(action.isExpanded)
+            }
+            is NoteAction.IsAudioRecording -> {
+                isAudioRecording()
+            }
             is NoteAction.TextDraft -> {
                 textDraft(action.textDraft)
             }
@@ -80,6 +93,7 @@ class NoteViewModel(
                         uId = initialNote.noteEntity.uId,
                         image = initialNote.image,
                         documents = initialNote.documentsList,
+                        audio = initialNote.audioList,
                         initialTitle = initialNote.noteEntity.title,
                         initialText = initialNote.noteEntity.text,
                         draftTitle = initialNote.noteEntity.title,
@@ -91,6 +105,7 @@ class NoteViewModel(
                     uId = 0,
                     image = null,
                     documents = emptyList(),
+                    audio = emptyList(),
                     initialTitle = "",
                     initialText = "",
                     draftTitle = "",
@@ -177,7 +192,7 @@ class NoteViewModel(
         val uId = _state.value.uId
         if (uId != 0L) {
             val documentPath = saveFile(
-                targetDir = "$documentPath/${_state.value.uId}",
+                targetDir = "$documentPath/$uId",
                 fileByte = documentByte.toByteArray(),
                 fileName = documentName
             )
@@ -189,6 +204,54 @@ class NoteViewModel(
             )
             viewModelScope.launch {
                 notesRepository.upsertDocument(document)
+            }
+        }
+    }
+
+    private fun expandAudio(isExpanded: Boolean) {
+        _state.update { it.copy(expandAudio = isExpanded) }
+    }
+
+    private fun isAudioRecording() {
+        if (_state.value.isRecording) {
+            stopRecording()
+        } else {
+            startRecording()
+        }
+    }
+
+    private fun startRecording() {
+        _state.update { it.copy(isRecording = true) }
+        audioRecorder.startRecording()
+        viewModelScope.launch {
+            while (_state.value.isRecording) {
+                delay(1000)
+                _state.update { it.copy(audioCountUp = it.audioCountUp + 1) }
+            }
+            _state.update { it.copy(audioCountUp = 0) }
+        }
+    }
+
+    private fun stopRecording() {
+        _state.update { it.copy(isRecording = false) }
+        val uId = _state.value.uId
+        val audioFile = audioRecorder.stopRecording()
+        val audioName = "Record (${timeRepository.getCurrentDateTime()}).mp3"
+
+        if (audioFile != null && uId != 0L) {
+            val audioPath = saveFile(
+                targetDir = "$audioPath/$uId",
+                fileByte = audioFile,
+                fileName = audioName
+            )
+            val audio = AudioEntity(
+                uId = 0,
+                audioName = audioName,
+                audioPath = audioPath,
+                ownerUid = uId
+            )
+            viewModelScope.launch {
+                notesRepository.upsertAudio(audio)
             }
         }
     }

@@ -3,6 +3,8 @@ package org.notes.multi.screen
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,8 +25,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.AttachFile
+import androidx.compose.material.icons.rounded.AudioFile
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Image
+import androidx.compose.material.icons.rounded.Mic
 import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material3.Card
@@ -51,6 +55,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -123,6 +128,7 @@ private fun ScaffoldScreen(
         ContentScreen(
             modifier = Modifier.padding(innerPadding),
             navController = navController,
+            snackBarHostState = snackBarHostState,
             state = state,
             onAction = onAction
         )
@@ -142,6 +148,7 @@ private fun ScaffoldScreen(
                     ) {
                         Box(
                             modifier = Modifier
+                                .fillMaxWidth()
                                 .height(75.dp)
                                 .clip(RoundedCornerShape(15.dp))
                         ) {
@@ -208,9 +215,11 @@ private fun ScaffoldScreen(
 private fun ContentScreen(
     modifier: Modifier = Modifier,
     navController: NavController,
+    snackBarHostState: SnackbarHostState,
     state: HomeState,
     onAction: (HomeAction) -> Unit
 ) {
+    val scope = rememberCoroutineScope()
     Column(
         modifier = modifier.padding(start = 5.dp, end = 5.dp)
     ) {
@@ -231,7 +240,7 @@ private fun ContentScreen(
                     ) {
                         Column(
                             modifier = Modifier
-                                .padding(10.dp)
+                                .padding(10.dp),
                         ) {
                             Row(
                                 modifier = Modifier
@@ -303,12 +312,13 @@ private fun ContentScreen(
                             )
                             HorizontalDivider(Modifier.padding(vertical = 10.dp))
                             Text(
+                                modifier = Modifier
+                                    .height(100.dp),
                                 text = note.noteEntity.text,
                                 overflow = TextOverflow.Ellipsis,
                                 style = MaterialTheme.typography.bodyMedium,
                                 maxLines = 5
                             )
-                            Spacer(Modifier.weight(1f))
                             Spacer(Modifier.height(10.dp))
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
@@ -327,6 +337,24 @@ private fun ContentScreen(
                                     )
                                     Text(
                                         text = note.documentsList.size.toString(),
+                                        fontSize = 15.sp
+                                    )
+                                }
+                                Spacer(Modifier.width(5.dp))
+                                Row(
+                                    modifier = Modifier
+                                        .border(1.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(50f))
+                                        .padding(10.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Icon(
+                                        modifier = Modifier
+                                            .size(15.dp),
+                                        imageVector = Icons.Rounded.Mic,
+                                        contentDescription = "Attach File"
+                                    )
+                                    Text(
+                                        text = "99",
                                         fontSize = 15.sp
                                     )
                                 }

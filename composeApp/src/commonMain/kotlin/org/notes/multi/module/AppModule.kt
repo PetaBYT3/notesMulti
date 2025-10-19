@@ -5,7 +5,9 @@ import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 import org.notes.multi.getNotesDatabase
 import org.notes.multi.localdata.database.AppDatabase
+import org.notes.multi.platformModule
 import org.notes.multi.repository.NotesRepository
+import org.notes.multi.repository.TimeRepository
 import org.notes.multi.viewmodel.HomeViewModel
 import org.notes.multi.viewmodel.NoteViewModel
 
@@ -18,6 +20,7 @@ object AppModule {
 
     private val repositoryModule = module {
         singleOf(::NotesRepository)
+        singleOf(::TimeRepository)
     }
 
     private val viewModelModule = module {
@@ -29,5 +32,6 @@ object AppModule {
         databaseModule,
         viewModelModule,
         repositoryModule,
+        platformModule
     )
 }
