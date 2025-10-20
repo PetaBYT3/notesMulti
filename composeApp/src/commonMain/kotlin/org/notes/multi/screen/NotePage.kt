@@ -92,6 +92,8 @@ import org.notes.multi.utilities.CustomDropDownMenu
 import org.notes.multi.utilities.DropDownList
 import org.notes.multi.utilities.SimpleConfirmationBottomSheet
 import org.notes.multi.viewmodel.NoteViewModel
+import java.lang.Thread.sleep
+import kotlin.concurrent.thread
 
 @OptIn(InternalVoyagerApi::class)
 @Composable
@@ -228,6 +230,21 @@ private fun ScaffoldScreen(
             },
             onDismiss = {
                 onAction(NoteAction.BottomSheetDeleteDocument(false, null))
+            }
+        )
+    }
+
+    if (state.bottomSheetDeleteAudio) {
+        SimpleConfirmationBottomSheet(
+            title = "Delete Audio",
+            text = """Are you sure you want to delete "${state.audioToDelete?.audioName}" ?""",
+            onConfirmText = "Delete",
+            onDismissText = "Cancel",
+            onConfirm = {
+                onAction(NoteAction.DeleteAudio)
+            },
+            onDismiss = {
+                onAction(NoteAction.BottomSheetDeleteAudio(false, null))
             }
         )
     }
@@ -556,6 +573,7 @@ private fun ContentScreen(
                                     Spacer(Modifier.width(10.dp))
                                     IconButton(
                                         onClick = {
+                                            onAction(NoteAction.BottomSheetDeleteAudio(true, audio))
                                         }
                                     ) {
                                         Icon(
@@ -578,7 +596,16 @@ private fun ContentScreen(
                                 Spacer(Modifier.weight(1f))
                                 IconButton(
                                     onClick = {
-                                        onAction(NoteAction.IsAudioRecording)
+                                        if (state.uId != 0L) {
+                                            onAction(NoteAction.IsAudioRecording)
+                                        } else {
+                                            scope.launch {
+                                                snackBarHostState.showSnackbar(
+                                                    message = "Save at least once !",
+                                                    withDismissAction = true
+                                                )
+                                            }
+                                        }
                                     }
                                 ) {
                                     Icon(

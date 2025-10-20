@@ -6,11 +6,15 @@ import org.notes.multi.localdata.database.ImageEntity
 
 data class NoteState(
 
+    val bottomSheetDiscard : Boolean = false,
+
     //uid
     val uId : Long = 0,
 
     //Image
     val image : ImageEntity? = null,
+    val bottomSheetDeleteImage : Boolean = false,
+    val dropDownImage : Boolean = false,
 
     //Document
     val documents : List<DocumentsEntity> = emptyList(),
@@ -18,8 +22,11 @@ data class NoteState(
     val documentToDelete : DocumentsEntity? = null,
     val bottomSheetDeleteDocument : Boolean = false,
 
+    //Audio
     val audio : List<AudioEntity> = emptyList(),
     val expandAudio : Boolean = false,
+    val audioToDelete : AudioEntity? = null,
+    val bottomSheetDeleteAudio : Boolean = false,
     val audioCountUp : Int = 0,
     val isRecording : Boolean = false,
 
@@ -32,16 +39,4 @@ data class NoteState(
     val draftText : String = "",
 
     val expandFloatingActionButton: Boolean = false,
-
-
-    //Discard BottomSheet
-    val bottomSheetDiscard : Boolean = false,
-
-    //Dropdown Image
-    val dropDownImage : Boolean = false,
-
-    //Show All Documents
-
-    //Delete Image Confirmation
-    val bottomSheetDeleteImage : Boolean = false,
 )

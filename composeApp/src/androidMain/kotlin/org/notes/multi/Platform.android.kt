@@ -137,20 +137,30 @@ actual class AudioRecorder {
             setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
             setOutputFile(tempFile?.absolutePath)
 
-            prepare()
-            start()
+            try {
+                prepare()
+                start()
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
     }
 
     actual fun stopRecording() : ByteArray? {
-        recorder?.stop()
-        val audioFile = tempFile?.takeIf { it.exists() }?.readBytes()
-        recorder?.release()
-        recorder = null
+        try {
+            recorder?.stop()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+
+        val bytes = tempFile?.takeIf { it.exists() }?.readBytes()
 
         tempFile?.delete()
         tempFile = null
 
-        return audioFile
+        recorder?.release()
+        recorder = null
+
+        return bytes
     }
 }

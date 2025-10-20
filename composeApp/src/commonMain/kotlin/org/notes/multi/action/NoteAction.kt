@@ -1,5 +1,6 @@
 package org.notes.multi.action
 
+import org.notes.multi.localdata.database.AudioEntity
 import org.notes.multi.localdata.database.DocumentsEntity
 
 sealed interface NoteAction {
@@ -42,4 +43,6 @@ sealed interface NoteAction {
     data class ExpandFloatingActionButton(val isExpanded: Boolean) : NoteAction
     data class ExpandAudio(val isExpanded: Boolean) : NoteAction
     data object IsAudioRecording : NoteAction
+    data class BottomSheetDeleteAudio(val isShown: Boolean, val audioToDelete: AudioEntity?) : NoteAction
+    data object DeleteAudio : NoteAction
 }

@@ -10,6 +10,7 @@ import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import okhttp3.Dispatcher
@@ -121,36 +122,46 @@ actual class AudioRecorder {
 
     actual fun startRecording() {
         recordingJob = CoroutineScope(Dispatchers.IO).launch {
+            var localLine: TargetDataLine? = null
             try {
                 val audioFormat = AudioFormat(44100f, 16, 1, true, false)
                 val info = DataLine.Info(TargetDataLine::class.java, audioFormat)
 
-                line = (AudioSystem.getLine(info)) as TargetDataLine
-                line?.open(audioFormat)
-                line?.start()
+                localLine = (AudioSystem.getLine(info) as TargetDataLine).apply {
+                    open(audioFormat)
+                    start()
+                }
 
-                val buffer = ByteArray(line!!.bufferSize / 5)
-                while (isActive) {
-                    val bytesRead = line!!.read(buffer, 0, buffer.size)
-                    audioBuffer.write(buffer, 0, bytesRead)
+                localLine.let { currentLine ->
+                    val buffer = ByteArray(currentLine.bufferSize / 5)
+
+                    while (isActive) {
+                        val bytesRead = currentLine.read(buffer, 0, buffer.size)
+                        if (bytesRead > 0) {
+                            audioBuffer.write(buffer, 0, bytesRead)
+                        }
+                    }
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
             } finally {
-                line?.stop()
-                line?.close()
+                localLine?.stop()
+                localLine?.close()
             }
         }
     }
 
     actual fun stopRecording() : ByteArray? {
-        recordingJob?.cancel()
+        CoroutineScope(Dispatchers.IO).launch {
+            recordingJob?.cancelAndJoin()
+        }
+
         line = null
         recordingJob = null
 
         val audioFile = audioBuffer.toByteArray()
         audioBuffer.reset()
 
-        return audioFile
+        return if (audioFile.isNotEmpty()) audioFile else null
     }
 }

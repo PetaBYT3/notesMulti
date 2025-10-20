@@ -304,8 +304,7 @@ private fun ContentScreen(
                             }
                             Spacer(Modifier.height(10.dp))
                             Text(
-                                modifier = Modifier
-                                    .weight(1f),
+                                modifier = Modifier,
                                 text = note.noteEntity.title,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
@@ -354,7 +353,7 @@ private fun ContentScreen(
                                         contentDescription = "Attach File"
                                     )
                                     Text(
-                                        text = "99",
+                                        text = note.audioList.size.toString(),
                                         fontSize = 15.sp
                                     )
                                 }

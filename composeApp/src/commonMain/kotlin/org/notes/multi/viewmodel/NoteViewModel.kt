@@ -73,6 +73,12 @@ class NoteViewModel(
             is NoteAction.IsAudioRecording -> {
                 isAudioRecording()
             }
+            is NoteAction.BottomSheetDeleteAudio -> {
+                bottomSheetDeleteAudio(action.isShown, action.audioToDelete)
+            }
+            NoteAction.DeleteAudio -> {
+                deleteAudio()
+            }
             is NoteAction.TextDraft -> {
                 textDraft(action.textDraft)
             }
@@ -253,6 +259,26 @@ class NoteViewModel(
             viewModelScope.launch {
                 notesRepository.upsertAudio(audio)
             }
+        }
+    }
+
+    private fun bottomSheetDeleteAudio(
+        isShown: Boolean,
+        audioToDelete: AudioEntity?
+    ) {
+        _state.update { it.copy(
+            bottomSheetDeleteAudio = isShown,
+            audioToDelete = audioToDelete
+        ) }
+    }
+
+    private fun deleteAudio() {
+        val audioToDelete = _state.value.audioToDelete
+        if (audioToDelete != null) {
+            viewModelScope.launch {
+                notesRepository.deleteAudio(audioToDelete)
+            }
+            deleteFile(audioToDelete.audioPath)
         }
     }
 
