@@ -5,6 +5,10 @@ import org.notes.multi.localdata.database.NotesRelation
 
 sealed interface HomeAction {
 
+    data class IsSelectionEnabled(val isEnabled: Boolean) : HomeAction
+
+    data class SelectNote(val uId : Long, val isSelect: Boolean) : HomeAction
+
     //Delete BottomSheet
     data class ShowDeleteBottomSheet(
         val showDeleteBottomSheet: Boolean,

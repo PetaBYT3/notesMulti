@@ -1,15 +1,23 @@
 package org.notes.multi.screen
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -26,11 +34,15 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.AttachFile
 import androidx.compose.material.icons.rounded.AudioFile
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Image
 import androidx.compose.material.icons.rounded.Mic
 import androidx.compose.material.icons.rounded.MoreVert
+import androidx.compose.material.icons.rounded.Notes
 import androidx.compose.material.icons.rounded.Warning
+import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
@@ -57,6 +69,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -68,6 +81,7 @@ import coil3.request.crossfade
 import kotlinx.coroutines.launch
 import org.koin.compose.viewmodel.koinViewModel
 import org.notes.multi.action.HomeAction
+import org.notes.multi.action.NoteAction
 import org.notes.multi.getFile
 import org.notes.multi.route.Route
 import org.notes.multi.state.HomeState
@@ -108,6 +122,50 @@ private fun ScaffoldScreen(
             TopAppBar(
                 title = { Text(text = "Home") },
                 actions = {
+                    AnimatedVisibility(
+                        visible = state.isSelectionEnabled,
+                        enter = fadeIn() + expandVertically(),
+                        exit = fadeOut() + shrinkVertically(),
+                        content = {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxHeight(),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                IconButton(
+                                    onClick = { onAction(HomeAction.IsSelectionEnabled(false)) }
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Rounded.Close,
+                                        contentDescription = "Disable Selection"
+                                    )
+                                }
+                                Spacer(Modifier.width(10.dp))
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Rounded.Notes,
+                                        contentDescription = "Notes"
+                                    )
+                                    Spacer(Modifier.width(5.dp))
+                                    Text(
+                                        text = state.allNotes.filter { it.isSelected }.size.toString(),
+                                        style = MaterialTheme.typography.titleLarge
+                                    )
+                                }
+                                Spacer(Modifier.width(10.dp))
+                                IconButton(
+                                    onClick = {}
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Rounded.Delete,
+                                        contentDescription = "Delete Selected Note"
+                                    )
+                                }
+                            }
+                        }
+                    )
                 }
             )
         },
@@ -220,8 +278,10 @@ private fun ContentScreen(
     onAction: (HomeAction) -> Unit
 ) {
     val scope = rememberCoroutineScope()
+    val interactionSource = remember { MutableInteractionSource() }
     Column(
-        modifier = modifier.padding(start = 5.dp, end = 5.dp)
+        modifier = modifier
+            .padding(start = 5.dp, end = 5.dp)
     ) {
         LazyVerticalGrid(
             modifier = Modifier
@@ -233,10 +293,22 @@ private fun ContentScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(5.dp)
-                            .clip(RoundedCornerShape(20.dp)),
-                        onClick = {
-                            navController.navigate(Route.NoteRoute(note.noteEntity.uId))
-                        }
+                            .clip(RoundedCornerShape(20.dp))
+                            .combinedClickable(
+                                interactionSource = interactionSource,
+                                onClick = {
+                                    if (state.isSelectionEnabled) {
+                                        if (note.isSelected) {
+                                            onAction(HomeAction.SelectNote(note.note.noteEntity.uId, false))
+                                        } else {
+                                            onAction(HomeAction.SelectNote(note.note.noteEntity.uId, true))
+                                        }
+                                    } else {
+                                        navController.navigate(Route.NoteRoute(note.note.noteEntity.uId))
+                                    }
+                                },
+                                onLongClick = { onAction(HomeAction.IsSelectionEnabled(true)) }
+                            ),
                     ) {
                         Column(
                             modifier = Modifier
@@ -253,12 +325,12 @@ private fun ContentScreen(
                                         .clip(RoundedCornerShape(15.dp))
                                 ) {
 
-                                    if (note.image?.imagePath != null) {
+                                    if (note.note.image?.imagePath != null) {
                                         AsyncImage(
                                             modifier = Modifier
                                                 .fillMaxSize(),
                                             model = ImageRequest.Builder(LocalPlatformContext.current)
-                                                .data(getFile(note.image.imagePath))
+                                                .data(getFile(note.note.image.imagePath))
                                                 .crossfade(true)
                                                 .build(),
                                             contentScale = ContentScale.Crop,
@@ -291,7 +363,7 @@ private fun ContentScreen(
                                             icon = Icons.Rounded.Delete,
                                             title = "Delete Note",
                                             onClick = {
-                                                onAction(HomeAction.ShowDeleteBottomSheet(true, note))
+                                                onAction(HomeAction.ShowDeleteBottomSheet(true, note.note))
                                             }
                                         )
                                     )
@@ -305,7 +377,7 @@ private fun ContentScreen(
                             Spacer(Modifier.height(10.dp))
                             Text(
                                 modifier = Modifier,
-                                text = note.noteEntity.title,
+                                text = note.note.noteEntity.title,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
@@ -313,7 +385,7 @@ private fun ContentScreen(
                             Text(
                                 modifier = Modifier
                                     .height(100.dp),
-                                text = note.noteEntity.text,
+                                text = note.note.noteEntity.text,
                                 overflow = TextOverflow.Ellipsis,
                                 style = MaterialTheme.typography.bodyMedium,
                                 maxLines = 5
@@ -335,7 +407,7 @@ private fun ContentScreen(
                                         contentDescription = "Attach File"
                                     )
                                     Text(
-                                        text = note.documentsList.size.toString(),
+                                        text = note.note.documentsList.size.toString(),
                                         fontSize = 15.sp
                                     )
                                 }
@@ -353,11 +425,22 @@ private fun ContentScreen(
                                         contentDescription = "Attach File"
                                     )
                                     Text(
-                                        text = note.audioList.size.toString(),
+                                        text = note.note.audioList.size.toString(),
                                         fontSize = 15.sp
                                     )
                                 }
                             }
+                            AnimatedVisibility(
+                                visible = note.isSelected,
+                                enter = fadeIn() + expandVertically(),
+                                exit = fadeOut() + shrinkVertically(),
+                                content ={
+                                    Icon(
+                                        imageVector = Icons.Rounded.Check,
+                                        contentDescription = "Selected"
+                                    )
+                                }
+                            )
                         }
                     }
                     Spacer(Modifier.height(10.dp))
