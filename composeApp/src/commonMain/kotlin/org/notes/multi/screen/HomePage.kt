@@ -35,6 +35,7 @@ import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.AttachFile
 import androidx.compose.material.icons.rounded.AudioFile
 import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Image
@@ -88,6 +89,7 @@ import org.notes.multi.state.HomeState
 import org.notes.multi.utilities.ComposableUnitBottomSheet
 import org.notes.multi.utilities.CustomDropDownMenu
 import org.notes.multi.utilities.DropDownList
+import org.notes.multi.utilities.SimpleConfirmationBottomSheet
 import org.notes.multi.viewmodel.HomeViewModel
 
 @Composable
@@ -156,7 +158,19 @@ private fun ScaffoldScreen(
                                 }
                                 Spacer(Modifier.width(10.dp))
                                 IconButton(
-                                    onClick = {}
+                                    onClick = {
+                                        val selectedNotes = state.allNotes.filter { it.isSelected }.size
+                                        if (selectedNotes > 0) {
+                                            onAction(HomeAction.ShowDeleteListBottomSheet)
+                                        } else {
+                                            scope.launch {
+                                                snackBarHostState.showSnackbar(
+                                                    message = "No notes selected",
+                                                    withDismissAction = true
+                                                )
+                                            }
+                                        }
+                                    }
                                 ) {
                                     Icon(
                                         imageVector = Icons.Rounded.Delete,
@@ -266,6 +280,21 @@ private fun ScaffoldScreen(
             }
         )
     }
+
+    if (state.showDeleteListBottomSheet) {
+        SimpleConfirmationBottomSheet(
+            title = "Delete Selected Notes",
+            text = "Are you sure you want to delete ${state.allNotes.filter { it.isSelected }.size} selected notes?",
+            onConfirmText = "Delete",
+            onDismissText = "Cancel",
+            onConfirm = {
+                onAction(HomeAction.DeleteListNote)
+            },
+            onDismiss = {
+                onAction(HomeAction.ShowDeleteListBottomSheet)
+            }
+        )
+    }
 }
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -278,7 +307,6 @@ private fun ContentScreen(
     onAction: (HomeAction) -> Unit
 ) {
     val scope = rememberCoroutineScope()
-    val interactionSource = remember { MutableInteractionSource() }
     Column(
         modifier = modifier
             .padding(start = 5.dp, end = 5.dp)
@@ -289,6 +317,7 @@ private fun ContentScreen(
             columns = GridCells.Adaptive(150.dp),
             content = {
                 items(state.allNotes) { note ->
+                    val interactionSource = remember { MutableInteractionSource() }
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -307,140 +336,146 @@ private fun ContentScreen(
                                         navController.navigate(Route.NoteRoute(note.note.noteEntity.uId))
                                     }
                                 },
-                                onLongClick = { onAction(HomeAction.IsSelectionEnabled(true)) }
+                                onLongClick = {
+                                    onAction(HomeAction.IsSelectionEnabled(true))
+                                    onAction(HomeAction.SelectNote(note.note.noteEntity.uId, true))
+                                }
                             ),
                     ) {
-                        Column(
+                        Box(
                             modifier = Modifier
                                 .padding(10.dp),
                         ) {
-                            Row(
+                            this@Card.AnimatedVisibility(
                                 modifier = Modifier
-                                    .height(75.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .clip(RoundedCornerShape(15.dp))
-                                ) {
-
-                                    if (note.note.image?.imagePath != null) {
-                                        AsyncImage(
-                                            modifier = Modifier
-                                                .fillMaxSize(),
-                                            model = ImageRequest.Builder(LocalPlatformContext.current)
-                                                .data(getFile(note.note.image.imagePath))
-                                                .crossfade(true)
-                                                .build(),
-                                            contentScale = ContentScale.Crop,
-                                            alignment = Alignment.Center,
-                                            contentDescription = "Image",
-                                        )
-                                    } else {
-                                        Icon(
-                                            modifier = Modifier
-                                                .align(Alignment.Center),
-                                            imageVector = Icons.Rounded.Image,
-                                            contentDescription = "Image",
-                                        )
-                                    }
-                                }
-                                Box(
-                                    modifier = Modifier
-                                ) {
-                                    var isExpanded by rememberSaveable { mutableStateOf(false) }
-                                    IconButton(
-                                        onClick = { isExpanded = !isExpanded }
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Rounded.MoreVert,
-                                            contentDescription = null
-                                        )
-                                    }
-                                    val dropDownList = listOf(
-                                        DropDownList(
-                                            icon = Icons.Rounded.Delete,
-                                            title = "Delete Note",
-                                            onClick = {
-                                                onAction(HomeAction.ShowDeleteBottomSheet(true, note.note))
-                                            }
-                                        )
-                                    )
-                                    CustomDropDownMenu(
-                                        dropDownList = dropDownList,
-                                        isExpanded = isExpanded,
-                                        onDismiss = { isExpanded = false }
-                                    )
-                                }
-                            }
-                            Spacer(Modifier.height(10.dp))
-                            Text(
-                                modifier = Modifier,
-                                text = note.note.noteEntity.title,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                            HorizontalDivider(Modifier.padding(vertical = 10.dp))
-                            Text(
-                                modifier = Modifier
-                                    .height(100.dp),
-                                text = note.note.noteEntity.text,
-                                overflow = TextOverflow.Ellipsis,
-                                style = MaterialTheme.typography.bodyMedium,
-                                maxLines = 5
-                            )
-                            Spacer(Modifier.height(10.dp))
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Row(
-                                    modifier = Modifier
-                                        .border(1.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(50f))
-                                        .padding(10.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                ) {
-                                    Icon(
-                                        modifier = Modifier
-                                            .size(15.dp),
-                                        imageVector = Icons.Rounded.AttachFile,
-                                        contentDescription = "Attach File"
-                                    )
-                                    Text(
-                                        text = note.note.documentsList.size.toString(),
-                                        fontSize = 15.sp
-                                    )
-                                }
-                                Spacer(Modifier.width(5.dp))
-                                Row(
-                                    modifier = Modifier
-                                        .border(1.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(50f))
-                                        .padding(10.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                ) {
-                                    Icon(
-                                        modifier = Modifier
-                                            .size(15.dp),
-                                        imageVector = Icons.Rounded.Mic,
-                                        contentDescription = "Attach File"
-                                    )
-                                    Text(
-                                        text = note.note.audioList.size.toString(),
-                                        fontSize = 15.sp
-                                    )
-                                }
-                            }
-                            AnimatedVisibility(
+                                    .align(Alignment.TopEnd),
                                 visible = note.isSelected,
-                                enter = fadeIn() + expandVertically(),
-                                exit = fadeOut() + shrinkVertically(),
                                 content ={
                                     Icon(
-                                        imageVector = Icons.Rounded.Check,
+                                        imageVector = Icons.Rounded.CheckCircle,
                                         contentDescription = "Selected"
                                     )
                                 }
                             )
+                            Column(
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .height(75.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .clip(RoundedCornerShape(15.dp))
+                                    ) {
+
+                                        if (note.note.image?.imagePath != null) {
+                                            AsyncImage(
+                                                modifier = Modifier
+                                                    .fillMaxSize(),
+                                                model = ImageRequest.Builder(LocalPlatformContext.current)
+                                                    .data(getFile(note.note.image.imagePath))
+                                                    .crossfade(true)
+                                                    .build(),
+                                                contentScale = ContentScale.Crop,
+                                                alignment = Alignment.Center,
+                                                contentDescription = "Image",
+                                            )
+                                        } else {
+                                            Icon(
+                                                modifier = Modifier
+                                                    .align(Alignment.Center),
+                                                imageVector = Icons.Rounded.Image,
+                                                contentDescription = "Image",
+                                            )
+                                        }
+                                    }
+                                    Box(
+                                        modifier = Modifier
+                                    ) {
+                                        var isExpanded by rememberSaveable { mutableStateOf(false) }
+                                        IconButton(
+                                            onClick = { isExpanded = !isExpanded }
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Rounded.MoreVert,
+                                                contentDescription = null
+                                            )
+                                        }
+                                        val dropDownList = listOf(
+                                            DropDownList(
+                                                icon = Icons.Rounded.Delete,
+                                                title = "Delete Note",
+                                                onClick = {
+                                                    onAction(HomeAction.ShowDeleteBottomSheet(true, note.note))
+                                                }
+                                            )
+                                        )
+                                        CustomDropDownMenu(
+                                            dropDownList = dropDownList,
+                                            isExpanded = isExpanded,
+                                            onDismiss = { isExpanded = false }
+                                        )
+                                    }
+                                }
+                                Spacer(Modifier.height(10.dp))
+                                Text(
+                                    modifier = Modifier,
+                                    text = note.note.noteEntity.title,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                HorizontalDivider(Modifier.padding(vertical = 10.dp))
+                                Text(
+                                    modifier = Modifier
+                                        .height(100.dp),
+                                    text = note.note.noteEntity.text,
+                                    overflow = TextOverflow.Ellipsis,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    maxLines = 5
+                                )
+                                Spacer(Modifier.height(10.dp))
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Row(
+                                        modifier = Modifier
+                                            .border(1.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(50f))
+                                            .padding(10.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                    ) {
+                                        Icon(
+                                            modifier = Modifier
+                                                .size(15.dp),
+                                            imageVector = Icons.Rounded.AttachFile,
+                                            contentDescription = "Attach File"
+                                        )
+                                        Text(
+                                            text = note.note.documentsList.size.toString(),
+                                            fontSize = 15.sp
+                                        )
+                                    }
+                                    Spacer(Modifier.width(5.dp))
+                                    Row(
+                                        modifier = Modifier
+                                            .border(1.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(50f))
+                                            .padding(10.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                    ) {
+                                        Icon(
+                                            modifier = Modifier
+                                                .size(15.dp),
+                                            imageVector = Icons.Rounded.Mic,
+                                            contentDescription = "Attach File"
+                                        )
+                                        Text(
+                                            text = note.note.audioList.size.toString(),
+                                            fontSize = 15.sp
+                                        )
+                                    }
+                                }
+                            }
                         }
                     }
                     Spacer(Modifier.height(10.dp))

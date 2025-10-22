@@ -1,7 +1,6 @@
 package org.notes.multi.action
 
-import org.notes.multi.localdata.database.NotesEntity
-import org.notes.multi.localdata.database.NotesRelation
+import org.notes.multi.localdata.database.DatabaseRelation
 
 sealed interface HomeAction {
 
@@ -12,9 +11,12 @@ sealed interface HomeAction {
     //Delete BottomSheet
     data class ShowDeleteBottomSheet(
         val showDeleteBottomSheet: Boolean,
-        val noteToDelete: NotesRelation?
+        val noteToDelete: DatabaseRelation?
     ): HomeAction
 
     //Delete Note
     data object DeleteNote : HomeAction
+
+    data object ShowDeleteListBottomSheet : HomeAction
+    data object DeleteListNote : HomeAction
 }

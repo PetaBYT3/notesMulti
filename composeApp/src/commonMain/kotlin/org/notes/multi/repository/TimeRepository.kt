@@ -3,11 +3,13 @@ package org.notes.multi.repository
 import kotlinx.datetime.Clock
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import kotlin.time.ExperimentalTime
 
 class TimeRepository {
 
+    @OptIn(ExperimentalTime::class)
     fun getCurrentDateTime() : String {
-        val timeNow = Clock.System.now()
+        val timeNow = kotlin.time.Clock.System.now()
         val localDateTime = timeNow.toLocalDateTime(TimeZone.currentSystemDefault())
 
         val years = localDateTime.year

@@ -8,21 +8,24 @@ import androidx.room.Upsert
 import kotlinx.coroutines.flow.Flow
 
 @Dao
-interface AppDao {
+interface DatabaseDao {
 
     @Transaction
     @Query("SELECT * FROM notes")
-    fun getAllNotes(): Flow<List<NotesRelation>>
+    fun getAllNotes(): Flow<List<DatabaseRelation>>
 
     @Transaction
     @Query("SELECT * FROM notes WHERE uId = :uId")
-    fun getNoteByUid(uId: Long): Flow<NotesRelation>
+    fun getNoteByUid(uId: Long): Flow<DatabaseRelation>
 
     @Upsert
     suspend fun upsertNote(note: NotesEntity) : Long
 
     @Delete
     suspend fun deleteNote(note: NotesEntity)
+
+    @Delete
+    suspend fun deleteNoteList(note: List<NotesEntity>)
 
     @Upsert
     suspend fun upsertImage(image: ImageEntity)

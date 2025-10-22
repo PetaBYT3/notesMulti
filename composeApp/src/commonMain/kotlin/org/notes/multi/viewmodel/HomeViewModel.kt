@@ -7,9 +7,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.notes.multi.action.HomeAction
-import org.notes.multi.action.NoteAction
-import org.notes.multi.localdata.database.NotesEntity
-import org.notes.multi.localdata.database.NotesRelation
+import org.notes.multi.localdata.database.DatabaseRelation
 import org.notes.multi.repository.NotesRepository
 import org.notes.multi.state.AllNotesWrapper
 import org.notes.multi.state.HomeState
@@ -42,11 +40,26 @@ class HomeViewModel(
             HomeAction.DeleteNote -> {
                 deleteNote()
             }
+            is HomeAction.ShowDeleteListBottomSheet -> {
+                showDeleteListBottomSheet()
+            }
+            HomeAction.DeleteListNote -> {
+                deleteListNote()
+            }
         }
     }
 
     private fun isSelectionEnabled(isEnabled : Boolean) {
-        _state.update { it.copy(isSelectionEnabled = isEnabled) }
+        if (isEnabled) {
+            _state.update { it.copy(isSelectionEnabled = true) }
+        } else {
+            _state.update {
+                val updatedNotes = it.allNotes.map { note ->
+                    note.copy(isSelected = false)
+                }
+                it.copy(allNotes = updatedNotes, isSelectionEnabled = false)
+            }
+        }
     }
 
     private fun selectNote(uId: Long, isSelect: Boolean) {
@@ -77,7 +90,7 @@ class HomeViewModel(
 
     private fun showDeleteBottomSheet(
         showDeleteBottomSheet: Boolean,
-        noteToDelete: NotesRelation?
+        noteToDelete: DatabaseRelation?
     ) {
         _state.update {
             it.copy(
@@ -93,6 +106,17 @@ class HomeViewModel(
             if (noteToDelete != null) {
                 notesRepository.deleteNote(noteToDelete.noteEntity)
             }
+        }
+    }
+
+    private fun showDeleteListBottomSheet() {
+        _state.update { it.copy(showDeleteListBottomSheet = !it.showDeleteListBottomSheet) }
+    }
+
+    private fun deleteListNote() {
+        viewModelScope.launch {
+            val selectedNotes = state.value.allNotes.filter { it.isSelected }
+            notesRepository.deleteNoteList(selectedNotes.map { it.note.noteEntity })
         }
     }
 }

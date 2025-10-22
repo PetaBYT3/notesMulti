@@ -76,6 +76,13 @@ kotlin {
 
             //Time
             api(libs.kotlinx.datetime)
+
+            //Lottie Animation
+            api(libs.compottie)
+            api(libs.compottie.network)
+            api(libs.compottie.resources)
+            api(libs.compottie.dot)
+            api(libs.compottie.lite)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

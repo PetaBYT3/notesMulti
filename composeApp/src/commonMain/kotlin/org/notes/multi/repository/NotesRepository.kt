@@ -1,22 +1,22 @@
 package org.notes.multi.repository
 
 import kotlinx.coroutines.flow.Flow
-import org.notes.multi.localdata.database.AppDao
+import org.notes.multi.localdata.database.DatabaseDao
 import org.notes.multi.localdata.database.AudioEntity
 import org.notes.multi.localdata.database.DocumentsEntity
 import org.notes.multi.localdata.database.ImageEntity
 import org.notes.multi.localdata.database.NotesEntity
-import org.notes.multi.localdata.database.NotesRelation
+import org.notes.multi.localdata.database.DatabaseRelation
 
 class NotesRepository(
-    private val appDao: AppDao
+    private val appDao: DatabaseDao
 ) {
 
-    fun getAllNotes(): Flow<List<NotesRelation>> {
+    fun getAllNotes(): Flow<List<DatabaseRelation>> {
         return appDao.getAllNotes()
     }
 
-    fun getNoteByUid(uId: Long): Flow<NotesRelation> {
+    fun getNoteByUid(uId: Long): Flow<DatabaseRelation> {
         return appDao.getNoteByUid(uId)
     }
 
@@ -26,6 +26,10 @@ class NotesRepository(
 
     suspend fun deleteNote(note: NotesEntity) {
         appDao.deleteNote(note)
+    }
+
+    suspend fun deleteNoteList(noteList: List<NotesEntity>) {
+        appDao.deleteNoteList(noteList)
     }
 
     suspend fun upsertImage(image: ImageEntity) {

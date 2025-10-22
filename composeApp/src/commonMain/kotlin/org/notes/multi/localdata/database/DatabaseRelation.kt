@@ -3,7 +3,7 @@ package org.notes.multi.localdata.database
 import androidx.room.Embedded
 import androidx.room.Relation
 
-data class NotesRelation (
+data class DatabaseRelation (
 
     @Embedded
     val noteEntity: NotesEntity,

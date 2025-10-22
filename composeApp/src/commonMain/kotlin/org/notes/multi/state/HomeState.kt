@@ -1,10 +1,9 @@
 package org.notes.multi.state
 
-import org.notes.multi.localdata.database.NotesEntity
-import org.notes.multi.localdata.database.NotesRelation
+import org.notes.multi.localdata.database.DatabaseRelation
 
 data class AllNotesWrapper(
-    val note : NotesRelation,
+    val note : DatabaseRelation,
     val isSelected : Boolean = false
 )
 
@@ -16,5 +15,8 @@ data class HomeState(
 
     //Delete BottomSheet
     val showDeleteBottomSheet : Boolean = false,
-    val noteToDelete : NotesRelation? = null,
+    val noteToDelete : DatabaseRelation? = null,
+
+    val showDeleteListBottomSheet : Boolean = false,
+    val noteToDeleteList : List<DatabaseRelation>? = null,
 )

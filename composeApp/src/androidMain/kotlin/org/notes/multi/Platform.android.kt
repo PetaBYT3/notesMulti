@@ -13,7 +13,7 @@ import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import org.koin.core.module.Module
 import org.koin.core.module.dsl.singleOf
 import org.koin.dsl.module
-import org.notes.multi.localdata.database.AppDatabase
+import org.notes.multi.localdata.database.Database
 import org.notes.multi.utilities.audioPath
 import org.notes.multi.utilities.documentPath
 import org.notes.multi.utilities.imagePath
@@ -21,7 +21,6 @@ import org.notes.multi.utilities.normalizePath
 import org.notes.multi.utilities.temp
 import org.notes.multi.utilities.videoPath
 import java.io.File
-import java.util.UUID
 
 actual val platformModule: Module = module {
     singleOf(::AudioRecorder)
@@ -38,9 +37,9 @@ fun initAndroidContext(context: Context) {
     applicationContext = context
 }
 
-actual fun getNotesDatabase(): AppDatabase {
+actual fun getNotesDatabase(): Database {
     val dbFile = applicationContext.getDatabasePath("notes.db")
-    return Room.databaseBuilder<AppDatabase>(
+    return Room.databaseBuilder<Database>(
         context = applicationContext,
         name = dbFile.absolutePath,
     )

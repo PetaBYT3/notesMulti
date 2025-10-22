@@ -2,9 +2,6 @@ package org.notes.multi
 
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import androidx.room.Room
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import kotlinx.coroutines.CoroutineScope
@@ -13,11 +10,10 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import okhttp3.Dispatcher
 import org.koin.core.module.Module
 import org.koin.core.module.dsl.singleOf
 import org.koin.dsl.module
-import org.notes.multi.localdata.database.AppDatabase
+import org.notes.multi.localdata.database.Database
 import org.notes.multi.utilities.audioPath
 import org.notes.multi.utilities.documentPath
 import org.notes.multi.utilities.imagePath
@@ -27,7 +23,6 @@ import org.notes.multi.utilities.videoPath
 import java.awt.Desktop
 import java.io.ByteArrayOutputStream
 import java.io.File
-import java.util.UUID
 import javax.sound.sampled.AudioFormat
 import javax.sound.sampled.AudioSystem
 import javax.sound.sampled.DataLine
@@ -44,10 +39,10 @@ actual fun isSystemDarkTheme(): Boolean {
 }
 
 //Room Database
-actual fun getNotesDatabase(): AppDatabase {
+actual fun getNotesDatabase(): Database {
     val baseDir = File(System.getProperty("user.home"), "NotesMulti")
     val dbFile = File(baseDir, "database/notes.db")
-    return Room.databaseBuilder<AppDatabase>(
+    return Room.databaseBuilder<Database>(
         name = dbFile.absolutePath,
     )
         .setDriver(BundledSQLiteDriver())

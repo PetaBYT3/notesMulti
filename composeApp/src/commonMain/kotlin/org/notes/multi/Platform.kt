@@ -2,14 +2,14 @@ package org.notes.multi
 
 import androidx.compose.runtime.Composable
 import org.koin.core.module.Module
-import org.notes.multi.localdata.database.AppDatabase
+import org.notes.multi.localdata.database.Database
 
 //AppTheme
 @Composable
 expect fun isSystemDarkTheme() : Boolean
 
 //Room Database
-expect fun getNotesDatabase() : AppDatabase
+expect fun getNotesDatabase() : Database
 
 //Create Base Directory
 expect fun createBaseDirectory()
